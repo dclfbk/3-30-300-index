@@ -1,0 +1,24 @@
+1. OSM
+OSM final: 210 features >= 0.01 km²
+
+Breakdown:
+parks: 
+garden:
+Total area of greenery in OSM: 11.85 km²
+
+===============================
+2. Regione ER from (Uso_Suolo_Dettaglio_2020_ETRS89.shp)
+Regione ER final: 232 features >= 0.01 km²
+Total area of parks in OSM: 11.85 km²
+
+Breakdown:
+DESCR
+Parchi                    134
+Ville                      95
+Parchi di divertimento      3
+Total area of greenery in Regione ER: 10.81 km²
+
+=== COMPARISON SUMMARY ===
+source  n_features  total_area_km2  median_size_km2  n_large (>0.1km2)
+OSM         210           11.85           0.0276                 28
+Regione ER  232           10.81           0.0259                 22

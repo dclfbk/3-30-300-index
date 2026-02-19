@@ -1,0 +1,2 @@
+Total buildings in GlobalBuildingsAltas: 39 385
+Total buildings in Bologna(from catastra map): 65 808
