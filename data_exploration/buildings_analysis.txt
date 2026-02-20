@@ -1,0 +1,39 @@
+HEIGHT OF BUILDINGS - COMPARISON OF DATA SOURCES
+=====================================================
+CATASTRAL MAP - BOLOGNA:
+
+Total buildings in Bologna(from catastra map): 65 808
+From catastra map(height): 
+Buildings with height > 0: 54,423
+Buildings with height = 0: 11,385
+
+
+=====================================================
+OPEN STREET MAP - BOLOGNA:
+OSM buildings: 67,216
+
+With explicit height: 419
+With levels only:     2,984
+With any height:      3,106
+
+Buildings needing gap-fill: 11,385
+Gap-filled via OSM: 119
+
+Final result:
+  With height > 0:    54,534
+  Still zero/missing: 11,274
+
+
+=======================================================
+STATS:
+
+count    65808.000000
+mean         9.169239
+std          8.051012
+min          0.000000
+25%          3.100000
+50%          7.700000
+75%         13.600000
+max        125.000000
+
+Saved: bologna_buildings_final.gpkg

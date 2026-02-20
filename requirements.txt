@@ -1,0 +1,9 @@
+pandas
+geopandas
+rasterio
+matplotlib
+deepforest
+osmnx
+numpy
+PILLOW
+shapely
