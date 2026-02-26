@@ -15,3 +15,6 @@ ENV/
 # Ignore macOS system files
 .DS_Store
 
+lightning_logs/version_0
+cache/
+

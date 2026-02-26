@@ -7,26 +7,22 @@ From catastra map(height):
 Buildings with height > 0: 54,423
 Buildings with height = 0: 11,385
 
-
 =====================================================
-OPEN STREET MAP - BOLOGNA:
-OSM buildings: 67,216
-
-With explicit height: 419
-With levels only:     2,984
-With any height:      3,106
-
-Buildings needing gap-fill: 11,385
-Gap-filled via OSM: 119
+GLOBAL ATLAS - BOLOGNA:
+Global altas height:        68,821 buildings
+After boundary clip: 53,533 buildings
+  height > 0: 53,365
+  height = 0: 168
 
 Final result:
-  With height > 0:    54,534
-  Still zero/missing: 11,274
-
-
+Total buildings:    53,533
+With height > 0:    53,365
 =======================================================
-STATS:
 
+
+STATS: CADASTRAL vs GLOBAL ATLAS:
+
+cadastral:
 count    65808.000000
 mean         9.169239
 std          8.051012
@@ -36,4 +32,13 @@ min          0.000000
 75%         13.600000
 max        125.000000
 
-Saved: bologna_buildings_final.gpkg
+global atlas:
+count    53533.000000
+mean         8.111312
+std          3.893150
+min          0.000000
+25%          5.389785
+50%          7.857537
+75%         10.438838
+max         51.115936
+

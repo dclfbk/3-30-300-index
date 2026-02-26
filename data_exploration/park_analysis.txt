@@ -1,9 +1,13 @@
 1. OSM
 OSM final: 210 features >= 0.01 km²
+- Parks with at least one OSM gate/entrance: 31 / 210 (15%)
+- Parks with 0 gates: 179 -- will use boundary sampling for these
 
-Breakdown:
-parks: 
-garden:
+OSM parks and gardens:
+- leisure=park: 434
+- leisure=garden: 621
+- 210 parks/gardens >= 0.01 km²
+
 Total area of greenery in OSM: 11.85 km²
 
 ===============================
@@ -22,3 +26,26 @@ Total area of greenery in Regione ER: 10.81 km²
 source  n_features  total_area_km2  median_size_km2  n_large (>0.1km2)
 OSM         210           11.85           0.0276                 28
 Regione ER  232           10.81           0.0259                 22
+
+=== PARK SUMMARY ==========
+
+Park gates and entrances from OSM:
+barrier: gate → 3233 points
+entrance: main → 145 points
+entrance : yes → 191 points
+entrance : secondary → 4 points
+amenity : park_entrance → no results
+
+Total unique gate/entrance nodes: 3566
+
+Parks with ≥1 gate: 31/210 (15%)
+Parks with 0 gates: 179 → boundary sampling
+
+Building park access points: 1499 total access points across 210 parks
+
+Euclidean pre-filter (300m):
+- Candidates: 28,659 / 52,223
+- Skipped:    23,564 (45.1%)
+
+1060 unique network source nodes
+Multi-source Dijkstra (cutoff=300m) = 10,908 nodes reachable within 300m

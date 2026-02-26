@@ -7,3 +7,7 @@ osmnx
 numpy
 PILLOW
 shapely
+scipy
+scikit-image
+opencv-python
+matplotlib

@@ -5,20 +5,21 @@ import osmnx as ox
 from shapely.geometry import box
 import matplotlib.patches as mpatches
 
-# get Bologna admin boundary
-bologna_admin = ox.geocode_to_gdf("Bologna, Italy")
-bologna_poly  = bologna_admin.geometry.iloc[0]
+#loading data 
+bologna_admin = gpd.read_file("data/bologna_boundary.gpkg").to_crs("EPSG:32632")
+gdf_osm = gpd.read_file("data/osm_buildings_bologna.gpkg").to_crs("EPSG:32632")
+gdf = gpd.read_file("data/catastral_map_with_heights.geojson").to_crs("EPSG:32632")
 
+bologna_poly  = bologna_admin.geometry.iloc[0]
 CRS_METRIC   = "EPSG:32632"
 results      = {}
-
 green_tags = {
     "leisure": ["park", "garden"]
     }
+
 green_keywords = ["Parchi", "Ville"]
 
-# ── 1. OSM ────────────────────────────────────────────────────────────────────
-print("Fetching OSM...")
+print("osm:")
 osm_gdfs = []
 for key, values in green_tags.items():
     for val in values:
@@ -37,11 +38,12 @@ for key, values in green_tags.items():
 osm = pd.concat(osm_gdfs).reset_index(drop=True)
 osm = gpd.GeoDataFrame(osm, crs="EPSG:4326")
 
-# filter private AFTER concat, on the DataFrame
+#filter only publically accesible parks and gardens 
 if "access" in osm.columns:
     osm = osm[~osm["access"].isin(["private", "no"])]
-    print(f"  Removed private features, remaining: {len(osm):,}")
+    print(f"removed private features => remaining: {len(osm):,}")
 
+#filter above 0,1 km2 green spaces (this is taken from a literature, can be changed). 
 osm = osm.to_crs(CRS_METRIC)
 osm["area_km2"] = osm.geometry.area / 1e6
 osm = osm[osm["area_km2"] >= 0.01]
@@ -118,8 +120,6 @@ ax_map = axes[0]
 category_colors = {
     "leisure=park":             "#2ecc71",
     "leisure=garden":           "#27ae60",
-    "leisure=nature_reserve":   "#1a6b3c",
-    "landuse=recreation_ground":"#f39c12",
     "Parchi":                   "#e74c3c",
     "Ville":                    "#c0392b",
 }
