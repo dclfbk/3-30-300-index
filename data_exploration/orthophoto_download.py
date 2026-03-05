@@ -1,9 +1,6 @@
-"""
-Downloads the Emilia-Romagna RGB orthophoto WMS in tiles
-and merges them into a single GeoTIFF ready for the tree pipeline.
-WS endpoint:
-    https://servizigis.regione.emilia-romagna.it/wms/comune_bo_2023_rgb
-"""
+# Downloads the Emilia-Romagna RGB orthophoto WMS in tiles
+#merges them into a single GeoTIFF ready for the tree pipeline.
+#data: https://servizigis.regione.emilia-romagna.it/wms/comune_bo_2023_rgb
 
 import os
 import io
@@ -21,45 +18,39 @@ import glob
 import rasterio
 from rasterio.merge import merge
 
-# ── CONFIG ────────────────────────────────────────────────────
-
+#config
 WMS_URL    = "https://servizigis.regione.emilia-romagna.it/wms/comune_bo_2023_rgb"
 OUTPUT_DIR = "./bologna_ortho"
 OUT_FILE   = os.path.join(OUTPUT_DIR, "bologna_rgb_2023.tif")
-
-# Bologna municipality bounding box — EPSG:32632 (UTM 32N), metres
-# Roughly: W=679000, S=4919000, E=695000, N=4932000
-# Adjust to zoom in on a smaller area for testing
 BBOX   = (679000, 4919000, 695000, 4932000)   # (xmin, ymin, xmax, ymax)
 CRS_CODE = "EPSG:32632"
-
-# Tile settings
 TILE_PX   = 2048      # pixels per tile request — bigger = fewer requests, more RAM
 GSD_M     = 0.20      # desired ground resolution in metres (20 cm = native resolution)
-            # increase to e.g. 0.5 for a quick test run
-
 WMS_VERSION = "1.3.0"
-IMAGE_FMT   = "image/png"   # or "image/jpeg" — PNG keeps quality, JPEG is smaller
+IMAGE_FMT   = "image/png"  
+TILE_DIR = "./bologna_ortho"                          # .tif files
+OUT_FILE = "./bologna_ortho/bologna_rgb_2023.tif"     # output mosaic path 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ── Connect to WMS
+#connect to WMS
 print(f"Connecting to WMS: {WMS_URL}")
 wms = WebMapService(WMS_URL, version=WMS_VERSION, timeout=120)
 
-# Auto-detect layer name
+#Auto-detect layer name
 layers = list(wms.contents.keys())
 print(f"Available layers: {layers}")
-LAYER = layers[0]   # use first layer — change if needed
+LAYER = layers[0]   
 print(f"Using layer: {LAYER}")
 
-# ── Compute tile grid
+#tile grid
 xmin, ymin, xmax, ymax = BBOX
-tile_m = TILE_PX * GSD_M    # real-world size of each tile in metres
+tile_m = TILE_PX * GSD_M   
 
 cols = math.ceil((xmax - xmin) / tile_m)
 rows = math.ceil((ymax - ymin) / tile_m)
 total = cols * rows
-print(f"\nGrid: {cols} cols × {rows} rows = {total} tiles")
+
+print(f"Grid: {cols} cols × {rows} rows = {total} tiles")
 print(f"Tile size: {tile_m:.0f}m × {tile_m:.0f}m  ({TILE_PX}×{TILE_PX} px)")
 print(f"Total area: {(xmax-xmin)/1000:.1f} × {(ymax-ymin)/1000:.1f} km\n")
 
@@ -120,7 +111,7 @@ for row in tqdm(range(rows), desc="Downloading rows"):
             print(f"\n  ⚠ Tile ({row},{col}) failed: {e}")
             tile_paths.remove(tile_path)
 
-# ── Merge tiles into single GeoTIFF
+#merge tiles into single GeoTIFF
 print(f"merging {len(tile_paths)} tiles into {OUT_FILE}...")
 
 datasets = [rasterio.open(p) for p in tile_paths if os.path.exists(p)]
@@ -148,8 +139,6 @@ print(f"Saved: {OUT_FILE}")
 print(f"Size: {mosaic.shape[2]:,} × {mosaic.shape[1]:,} px")
 print(f"IMAGE_PATH = '{OUT_FILE}' in bologna_tree_pipeline.py")
 
-TILE_DIR = "./bologna_ortho"                          # .tif files
-OUT_FILE = "./bologna_ortho/bologna_rgb_2023.tif"     # output mosaic path
 
 # Find all tiles
 tile_paths = sorted(glob.glob(os.path.join(TILE_DIR, "tile_*.tif")))
@@ -164,12 +153,12 @@ rows_found = sorted(set(int(os.path.basename(p).split("_")[1]) for p in tile_pat
 cols_found = sorted(set(int(os.path.basename(p).split("_")[2].replace(".tif","")) for p in tile_paths))
 expected_count = (max(rows_found)+1) * (max(cols_found)+1)
 if len(tile_paths) < expected_count:
-    print(f"Expected ~{expected_count} tiles, found {len(tile_paths)} — {expected_count - len(tile_paths)} missing.")
-    print("Merging anyway — missing tiles will appear as black holes in the mosaic.")
+    print(f"Expected {expected_count} tiles, found {len(tile_paths)} — {expected_count - len(tile_paths)} missing.")
+    print("Merging anyway: missing tiles will appear as black holes in the mosaic.")
 else:
     print(f"All tiles present")
 
-# ── Merge
+#Merge
 print(f"Merging:")
 print(f" checking progress of the merge process: {len(tile_paths)} tiles to merge...")
 datasets = [rasterio.open(p) for p in tile_paths]

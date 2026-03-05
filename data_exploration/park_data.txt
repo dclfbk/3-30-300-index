@@ -1,0 +1,57 @@
+===================================================================
+DBSN 
+===================================================================
+area verde:
+green spaces: 01                 
+undefiend green spaces: 95       
+
+DBSN parks (≥ 0.01 km², clipped to boundary): 824
+- total green area (>0,01 km2) : 24.70 km²
+- total green area (all parks) : 31.69 km²
+
+area stats (km²) - parks above 0.01 km2:
+count    824.0000
+mean       0.0300
+std        0.0323
+75%        0.0313
+coverage  - all parks: 22.5% of Bologna
+
+area stats (km²)  - all parks:
+count    3814.0000
+mean        0.0083
+std         0.0190
+75%         0.0085
+
+===================================================================
+OSM
+===================================================================
+OSM parks+gardens (all): 1055
+OSM parks+gardens (≥ 0.01 km²): 211
+total green area - all OSM: 13.12 km²
+total green area - OSM ≥ 0.01 km²: 11.88 km²
+
+coverage - all OSM: 9.3% of Bologna
+coverage - OSM ≥ 0.01 km²: 8.4% of Bologna
+area stats (km²) - all OSM:
+count    1055.0000
+mean        0.0124
+std         0.0474
+min         0.0000
+25%         0.0002
+50%         0.0009
+75%         0.0060
+max         0.9477
+
+public only OSM parks and gardens: 210
+
+===================================================================
+COMPARISION
+===================================================================
+DBSN vs OSM comparison
+source    filter  count  total_km2  pct_bologna
+  DBSN ≥0.01 km²    824      24.70        17.56
+  DBSN       all   3814      31.69        22.53
+   OSM ≥0.01 km²    211      11.88         8.44
+   OSM       all   1055      13.12         9.33
+
+Saved park layer: 3814 parks (31.69 km²)

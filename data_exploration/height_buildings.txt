@@ -1,0 +1,72 @@
+HEIGHT OF BUILDINGS - COMPARISON OF DATA SOURCES
+===================================================================
+CATASTRAL MAP - BOLOGNA:
+===================================================================
+Total buildings: 65,734
+Height > 0: 54,372
+Zero/missing: 11,362
+
+===================================================================
+GLOBAL ATLAS - BOLOGNA:
+===================================================================
+Total buildings: 53,533
+Height > 0: 53,365
+Zero/missing: 168
+
+===================================================================
+COMPARISON:
+===================================================================
+Global Atlas buildings: 53,365
+Cadastral buildings: 54,372
+
+Buildings with the same height (±1 m): 15 093
+Buildings with the same height (±3 m): 42 872
+Buildings with the same height (±5 m): 63 758
+
+
+Absolute difference statistics:
+count    48831.000000
+mean         4.464257
+std          4.422187
+50%          3.265611
+75%          5.932305
+
+Threshold sensitivity:
+Tolerance ±1 m → 16.8% match
+Tolerance ±2 m → 32.7% match
+Tolerance ±3 m → 46.7% match
+Tolerance ±5 m → 67.7% match
+
+75th percentile threshold: 5.93 m
+Robust MAD threshold: 7.37 m
+Mean signed difference (bias): -2.51 m
+
+Cadastral buildings needing fill: 11,362 (*Height > 0: 54,372)
+GBA buildings not in cadastral: 3,252
+
+===================================================================
+Final dataset:
+===================================================================
+Base cadastral buildings: 65,734
+Height > 0: 54,372
+Height <= 0 (needs fill): 11,362
+
+Case A - cadastral geometry, GBA height fill:
+- Successfully filled: 7,296
+- Still missing (no GBA match found): 4,066
+
+Case B - GBA buildings absent from cadastral entirely:
+- Appending: 2,388
+
+Final dataset:
+- Total buildings: 68,122
+
+                    count  mean
+source                         
+cadastral           58438  10.3
+cadastral_gba_fill   7296   6.5
+gba_only             2388   4.0
+  With height > 0: 64,056  (94.0%)
+  Still zero/missing: 4,066
+
+Saved: data/bologna_buildings_final.gpkg
