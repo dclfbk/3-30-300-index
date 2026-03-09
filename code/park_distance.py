@@ -65,6 +65,10 @@ parks = (gpd.read_file("data/parks_dbsn.gpkg")
          .reset_index(drop=True)
          .assign(park_id=lambda df: df.index))
 
+forest =
+garden =
+
+
 # 4. walk network
 G = ox.graph_from_polygon(bologna_wgs84, network_type="walk")
 G = ox.project_graph(G, to_crs=CRS_METRIC)
