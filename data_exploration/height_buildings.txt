@@ -1,76 +1,86 @@
-HEIGHT OF BUILDINGS - COMPARISON OF DATA SOURCES
-- clipped to bologna boundary, filter on buildings >5 m2
-===================================================================
+COMPARISON SUMMARY
+==================
 
-1. DATA SUMMARY
-=============================================
-  GBA  — Total buildings :   53,365
-         Height > 0      :   53,365
-         Zero/missing    :        0
+1. PREPROCESSING
+   - Both datasets clipped to Bologna municipal boundary, filtered to buildings > 5 m²
+   - Buildings ≤ 5 m² excluded (removes shelters, garages, etc.)
+   - Cadastral height: altezza_gr, fallback to quota_gron − quota_pied where altezza_gr is missing
 
-  CAD  — Total buildings :   65,058
-         Height > 0      :   54,372
-         Zero/missing    :   10,686
+2. GEOMETRY MATCHING
 
-===================================================================
+   Method: sjoin (intersects) + largest overlap area as best-match criterion.
 
-2. HEIGHT COMPARISON
-Geometrically matched :   50,974
-Height > 0 in both datasets :   48,832
-Missing height in one or both:    2,142
-Threshold sensitivity:
-    ± 1 m =>  8,197  (16.8%)
-    ± 2 m => 15,964  (32.7%)
-    ± 3 m => 22,809  (46.7%)
-    ± 5 m => 33,057  (67.7%)
-    ± 8 m => 41,687  (85.4%)
-    ±10 m => 44,359  (90.8%)
+   Strategies evaluated:
+   ┌─────────────────────────────────────────┬───────────────┐
+   │ Method                                  │ Matched (GBA) │
+   ├─────────────────────────────────────────┼───────────────┤
+   │ sjoin intersects + largest overlap      │ 50,974  ✓     │
+   │ sjoin_nearest, max_distance = 5m        │ 51,956        │
+   │ sjoin_nearest, max_distance = 10m       │ 52,329        │
+   │ Intersection over Union > 0.3           │ 43,586        │
+   │ Intersection over Union > 0.5           │ 34,545        │
+   └─────────────────────────────────────────┴───────────────┘
 
-Mean signed bias (GBA − cadastral): -2.51 m
-75th percentile threshold   : 5.93 m
-Robust MAD threshold  : 7.37 m
- stats:
-count    48832.00
-mean         4.46
-std          4.42
-min          0.00
-10%          0.58
-25%          1.50
-50%          3.27
-75%          5.93
-90%          9.61
-95%         13.05
-max         80.10
+   Selected: sjoin intersects + largest overlap
+   Rationale: requires physical overlap between polygons, is parameter-free,
+   and the marginal gain from distance-based matching (~2.6%) does not justify
+   the risk of false matches between adjacent buildings.
 
+   Low IoU values reflect genuine polygon fragmentation — GBA and cadastral
+   frequently represent the same physical structure with different polygon
+   boundaries. Documented as a limitation of the height comparison statistics.
 
-3. COVERAGE SUMMARY
-=============================================
-  Total GBA buildings              :   53,365
-  GBA matched                      :   50,974
-  GBA only                         :    2,391
+   Implementation note: matching is asymmetric — one GBA polygon can overlap
+   multiple cadastral polygons and vice versa. Two separate deduplications
+   computed from the same raw join:
 
-  Total cadastral buildings        :   65,058
-  Cadastral matched                :   57,817
-  Cadastral only                   :    7,241
+     best_per_gba  — one row per GBA building (largest cadastral overlap)
+                     used for height comparison and gap-filling (= joined_all)
+     best_per_cad  — one row per cadastral building (largest GBA overlap)
+                     used only for cadastral-side coverage counts
 
-5. CADASTRAL (before gap-fill)
-Total buildings :   65,058
-Height > 0:   54,372
-Zero/missing height :   10,686
-Height filled with GBA :    6,881
-  Cadastral needing fill           :   10,686
-  Filled via GBA (2m buffer)       :    6,881
-  Still missing after fill         :    3,805
+3. DATA SUMMARY
+   ┌─────────────┬───────────────┬──────────────┬──────────────┐
+   │ Dataset     │ Total         │ Height > 0   │ Zero/missing │
+   ├─────────────┼───────────────┼──────────────┼──────────────┤
+   │ GBA         │ 53,365        │ 53,365       │ 0            │
+   │ Cadastral   │ 65,058        │ 54,372       │ 10,686       │
+   └─────────────┴───────────────┴──────────────┴──────────────┘
 
-6. FINAL DATASET
-=============================================
-  Heights from cadastral           :   54,372
-  Heights from GBA (gap-fill)      :    6,881
-  Buildings solely from GBA        :    2,391
-  ─────────────────────────────────
-  Total buildings                  :   67,449
-  With height > 0                  :   63,644
-  Still zero/missing               :    3,805
+4. HEIGHT COMPARISON
+   Note: counts use best_per_gba (one row per GBA building).
+         best_per_cad gives 57,817 matched cadastral buildings, 52,671 with height.
 
+   Matched buildings (GBA perspective):
+   - Geometrically matched              : 50,974
+   - Matched + height in GBA            : 50,974  (GBA always has height)
+   - Matched + height in cadastral      : 48,832  (from best_per_gba pairs)
+   - Matched + height in BOTH           : 48,832  ← used for all stats below
+   - Matched but cadastral missing ht   :  2,142  (candidates for gap-fill)
 
+   Threshold sensitivity (n = 48,832 pairs):
+   - ± 1 m  →   8,197  (16.8%)
+   - ± 3 m  →  22,809  (46.7%)
+   - ± 5 m  →  33,057  (67.7%)
 
+   Mean signed bias (GBA − cadastral) = −2.51 m
+   GBA systematically underestimates relative to cadastral.
+   Supports using cadastral as primary source.
+
+5. COVERAGE SUMMARY  (footprint > 5 m², height > 0)
+   - Height in cadastral (total)  : 54,372  (of 65,058)
+   - Height in GBA (total)        : 53,365  (of 53,365)
+   - Height in both               : 48,832
+   - GBA only — all polygons      :  2,391  (of 53,365)  | height > 0: 2,391
+   - Cadastral only — all polygons:  7,241  (of 65,058)  | height > 0: 1,701
+
+6. GAP-FILLING  (cadastral primary, GBA fallback)
+   - Cadastral base buildings     : 65,058
+   - Already have height          : 54,372
+   - Needing fill (height ≤ 0)    : 10,686
+   - Filled via GBA               :  6,881
+   - Appended from GBA only       :  2,391
+   ─────────────────────────────────────────
+   - Total with height > 0        : 63,644  (54,372 + 6,881 + 2,391)
+   - Still zero/missing           :  3,805
+   - Total buildings              : 67,449  (65,058 + 2,391)

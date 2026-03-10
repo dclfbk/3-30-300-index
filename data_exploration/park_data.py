@@ -23,6 +23,8 @@ print(ar_vrd["ar_vrd_ty"].value_counts().to_string())
 parks_dbsn = (
     ar_vrd
     .query('ar_vrd_ty == "01" or ar_vrd_ty == "95"')
+    .query('pe_uins == "11" or pe_uins == "1101" or pe_uins == "1102" or pe_uins == "1103"')
+    .query('pe_uins_ty == "11" or pe_uins_ty == "1101" or pe_uins_ty == "1102" or pe_uins_ty == "1103"')
     .copy()
     .assign(area_km2=lambda df: df.geometry.area / 1e6)
     .loc[lambda df: df.area_km2 >= MIN_PARK_AREA_KM2]
