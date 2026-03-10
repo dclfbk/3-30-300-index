@@ -1,72 +1,76 @@
 HEIGHT OF BUILDINGS - COMPARISON OF DATA SOURCES
+- clipped to bologna boundary, filter on buildings >5 m2
 ===================================================================
-CATASTRAL MAP - BOLOGNA:
-===================================================================
-Total buildings: 65,734
-Height > 0: 54,372
-Zero/missing: 11,362
+
+1. DATA SUMMARY
+=============================================
+  GBA  — Total buildings :   53,365
+         Height > 0      :   53,365
+         Zero/missing    :        0
+
+  CAD  — Total buildings :   65,058
+         Height > 0      :   54,372
+         Zero/missing    :   10,686
 
 ===================================================================
-GLOBAL ATLAS - BOLOGNA:
-===================================================================
-Total buildings: 53,533
-Height > 0: 53,365
-Zero/missing: 168
 
-===================================================================
-COMPARISON:
-===================================================================
-Global Atlas buildings: 53,365
-Cadastral buildings: 54,372
-
-Buildings with the same height (±1 m): 15 093
-Buildings with the same height (±3 m): 42 872
-Buildings with the same height (±5 m): 63 758
-
-
-Absolute difference statistics:
-count    48831.000000
-mean         4.464257
-std          4.422187
-50%          3.265611
-75%          5.932305
-
+2. HEIGHT COMPARISON
+Geometrically matched :   50,974
+Height > 0 in both datasets :   48,832
+Missing height in one or both:    2,142
 Threshold sensitivity:
-Tolerance ±1 m → 16.8% match
-Tolerance ±2 m → 32.7% match
-Tolerance ±3 m → 46.7% match
-Tolerance ±5 m → 67.7% match
+    ± 1 m =>  8,197  (16.8%)
+    ± 2 m => 15,964  (32.7%)
+    ± 3 m => 22,809  (46.7%)
+    ± 5 m => 33,057  (67.7%)
+    ± 8 m => 41,687  (85.4%)
+    ±10 m => 44,359  (90.8%)
 
-75th percentile threshold: 5.93 m
-Robust MAD threshold: 7.37 m
-Mean signed difference (bias): -2.51 m
+Mean signed bias (GBA − cadastral): -2.51 m
+75th percentile threshold   : 5.93 m
+Robust MAD threshold  : 7.37 m
+ stats:
+count    48832.00
+mean         4.46
+std          4.42
+min          0.00
+10%          0.58
+25%          1.50
+50%          3.27
+75%          5.93
+90%          9.61
+95%         13.05
+max         80.10
 
-Cadastral buildings needing fill: 11,362 (*Height > 0: 54,372)
-GBA buildings not in cadastral: 3,252
 
-===================================================================
-Final dataset:
-===================================================================
-Base cadastral buildings: 65,734
-Height > 0: 54,372
-Height <= 0 (needs fill): 11,362
+3. COVERAGE SUMMARY
+=============================================
+  Total GBA buildings              :   53,365
+  GBA matched                      :   50,974
+  GBA only                         :    2,391
 
-Case A - cadastral geometry, GBA height fill:
-- Successfully filled: 7,296
-- Still missing (no GBA match found): 4,066
+  Total cadastral buildings        :   65,058
+  Cadastral matched                :   57,817
+  Cadastral only                   :    7,241
 
-Case B - GBA buildings absent from cadastral entirely:
-- Appending: 2,388
+5. CADASTRAL (before gap-fill)
+Total buildings :   65,058
+Height > 0:   54,372
+Zero/missing height :   10,686
+Height filled with GBA :    6,881
+  Cadastral needing fill           :   10,686
+  Filled via GBA (2m buffer)       :    6,881
+  Still missing after fill         :    3,805
 
-Final dataset:
-- Total buildings: 68,122
+6. FINAL DATASET
+=============================================
+  Heights from cadastral           :   54,372
+  Heights from GBA (gap-fill)      :    6,881
+  Buildings solely from GBA        :    2,391
+  ─────────────────────────────────
+  Total buildings                  :   67,449
+  With height > 0                  :   63,644
+  Still zero/missing               :    3,805
 
-                    count  mean
-source                         
-cadastral           58438  10.3
-cadastral_gba_fill   7296   6.5
-gba_only             2388   4.0
-  With height > 0: 64,056  (94.0%)
-  Still zero/missing: 4,066
 
-Saved: data/bologna_buildings_final.gpkg
+
