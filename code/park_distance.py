@@ -36,8 +36,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 CRS_WGS = "EPSG:4326"
 CRS_METRIC  = "EPSG:32632"
 WALKING_DISTANCE  = 300 #metres - zaezr we might apply a deviation from the hard threshold...
-MIN_PARK_AREA_KM2 = 0.01 #given from many previous studies, cna be skipped 
-DBSN_GDB_PATH  = "/Users/terezasaskova/Downloads/BO_dbsn_2025-07-28/Bologna_dbsn.gdb"
+MIN_PARK_AREA_KM2 = 0.01 #given from many previous studies, can be skipped 
 GH_URL = "http://localhost:8989/route"
 EUCLID_CUTOFF = 420 #euclidian distance buffer, to prefilter an make the whoel computation faster
 N_WORKERS = 12   
@@ -60,7 +59,7 @@ buildings["building_id"] = buildings.index
 print(f"{len(buildings):,} buildings")
 
 #3. parks
-parks = (gpd.read_file("data/parks_dbsn.gpkg")
+parks = (gpd.read_file("bologna_parks_03_ha.gpkg")
          .to_crs(CRS_METRIC)
          .reset_index(drop=True)
          .assign(park_id=lambda df: df.index))
@@ -191,9 +190,9 @@ def route_one(i):
 
     candidates_idx = entrance_tree.query(centroid_m.buffer(EUCLID_CUTOFF))
     if len(candidates_idx) == 0:
-        return {"building_id": bldg["building_id"], "walk_m": None, "park_id": None}
+        return {"building_id": building_id, "walk_m": None, "park_id": None}  
 
-    candidates = sorted([(centroid_m.distance(entrances.iloc[j].geometry), j) for j in candidates_idx])
+    candidates = sorted([(centroid_m.distance(entrances_geom_arr[j]), j) for j in candidates_idx])  
 
     best_dist, best_park = None, None
 
@@ -201,12 +200,12 @@ def route_one(i):
         if best_dist is not None and eucl_dist >= best_dist:
             break
         dest_lat, dest_lon = entrances_latlon[idx]
-        dist = graphhopper (orig_lat, orig_lon, dest_lat, dest_lon)
+        dist = graphhopper(orig_lat, orig_lon, dest_lat, dest_lon)
         if dist is not None and (best_dist is None or dist < best_dist):
             best_dist = dist
-            best_park = entrances.iloc[idx]["park_id"]
+            best_park = entrances_park_ids[idx] 
 
-    return {"building_id": bldg["building_id"], "walk_m": best_dist, "park_id": best_park}
+    return {"building_id": building_id, "walk_m": best_dist, "park_id": best_park}  
 
 #parallelize the computation
 results = [None] * len(buildings)
@@ -233,8 +232,17 @@ with ThreadPoolExecutor(max_workers=N_WORKERS) as executor:
 #save
 routing_df = pd.DataFrame(results)
 buildings_routed = buildings.merge(routing_df, on="building_id")
-buildings_routed["within_300m"] = buildings_routed["walk_m"] <= WALKING_DISTANCE
-buildings_routed.to_file("data/buildings_routed.gpkg", driver="GPKG")
+buildings_routed["within_300m"] = buildings_routed["walk_m"].fillna(float("inf")) <= WALKING_DISTANCE
+# Get park_ids reachable within 300m
+reachable_park_ids = buildings_routed.loc[buildings_routed["within_300m"], "park_id"].dropna().unique()
+
+# Filter parks
+parks_within_300m = parks[parks["park_id"].isin(reachable_park_ids)]
+
+# Save both
+buildings_routed.to_file("data/buildings_routed.gpkg", driver="GPKG", layer="buildings")
+parks_within_300m.to_file("data/buildings_routed.gpkg", driver="GPKG", layer="parks")
+
 
 print(f"buildings within {WALKING_DISTANCE}m walk of a park: "
       f"{buildings_routed['within_300m'].sum():,} "

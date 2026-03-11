@@ -1,0 +1,92 @@
+GREEN AREAS — BOLOGNA  |  Data Exploration Notes
+
+- 3-30-300 Rule: Park Accessibility Layer (300m component)
+- criteria: publicly accessible + area ≥ 1 ha
+==============================================================
+
+1. DBSN — AR_VRD (Area Verde)
+──────────────────────────────
+Attribute pe_uins_ty:
+  01  not qualified garden
+  95  other
+
+Stats:
+  All parks/gardens (types 01, 95) : 3,814 features  |  3,050.0 ha  |  21.7% Bologna
+  Eligible (≥ 1 ha)                :   793 features  |  2,359.9 ha  |  16.8% Bologna
+
+──────────────────────────────────────────────────────────────
+
+2. DBSN — BOSCO (Forest)
+─────────────────────────
+Key attributes:
+  bosco_ty   Forest type 
+               01  Conifer-dominated
+               02  Deciduous-dominated
+               03  Plantations
+               04  Shrubs and scrub        ← exclude
+               05  Mixed
+               91  Not known
+               95  Other
+             - Bologna: only 01, 02, 91, 95 present
+
+  bosco_gov  Silvicultural management
+               01  Fustaia (high forest) — older, taller, more accessible
+               02  Ceduo (coppice)       — dense, scrubby, less walkable
+             - Not populated in Bologna data -  filter dropped
+
+Stats:
+  All bosco clipped to Bologna  : 178 features  |  746.1 ha  |  5.3% Bologna
+  Suitable (ty 01+02, ≥ 1 ha)  :  89 features  |  707.4 ha  |  5.0% Bologna
+
+Filter applied: bosco_ty in [01, 02]  — excludes unknowns (91, 95)
+No access/public field exists -  public access assumed
+Note: Bologna forests concentrated in south,limited contribution to urban 300m - decide it we want to use it
+
+──────────────────────────────────────────────────────────────
+
+3. DBSN — PE_UNIS (Settlement Units)
+──────────────────────────────────────
+Key attribute pe_uins_ty:
+  0301  School areas
+  0302  Hospital areas
+  0303  Cemetery areas
+  04    Military areas
+  06    Industrial areas
+  1001  Playgrounds         - very small... mostly are filtered by 1ha rule...
+  11    Park/garden (public or private)
+  1101  Garden
+  1102  ?                    
+  1103  Park
+
+Stats:
+  All pe_unis clipped to Bologna  : 673 features  |  1,647.6 ha  |  11.7% Bologna
+  ≥ 1 ha (all types)              : 274 features  |  1,580.5 ha  |   6.3% Bologna
+  Green types only (11+sub, ≥1ha) : 190 features  |    887.7 ha  |   6.3% Bologna
+
+Filter applied: pe_uins_ty in [11, 1101, 1102, 1103], ≥ 1 ha
+
+──────────────────────────────────────────────────────────────
+
+4. OSM — leisure = park / garden
+──────────────────────────────────
+Access filter: exclude access in [private, no, restricted, permit, customers]
+
+Stats:
+  All polygons clipped        : 1,055 features  |  1,184.4 ha  |   8.4% Bologna
+  Public only                 : 1,030 features  |  1,178.6 ha  |   8.4% Bologna
+  Eligible (public, ≥ 1 ha)  :   208 features  |  1,057.5 ha  |   7.5% Bologna
+
+──────────────────────────────────────────────────────────────
+
+
+SUMMARY
+────────
+Layer                    Filter               n      ha     % Bologna
+DBSN ar_vrd              all parks/gardens  3,814  3,050.0    21.7
+DBSN ar_vrd              ≥ 1 ha (eligible)   793   2,359.9    16.8
+DBSN bosco               all                 178     746.1     5.3
+DBSN bosco               suitable ≥ 1 ha      89     707.4     5.0
+DBSN pe_unis             all                 673   1,647.6    11.7
+DBSN pe_unis             green ≥ 1 ha        190     887.7     6.3
+OSM  park/garden         all public        1,030   1,178.6     8.4
+OSM  park/garden         public ≥ 1 ha       208   1,057.5     7.5

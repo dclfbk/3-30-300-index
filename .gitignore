@@ -18,3 +18,5 @@ ENV/
 lightning_logs/version_0
 cache/
 .pkl
+
+code/java_gh.txt
