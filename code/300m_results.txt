@@ -1,0 +1,70 @@
+300m Park Access Indicator — Bologna
+
+Final Statistics
+
+Data Sources
+- Address points (civici): Bologna Open Data — rifter_civici_pt (77,630 points)
+- Parks/greenery: DBSN (`ar_vrd`, `pe_unis`) + OSM (`park_garden`)
+- Street network: OSM via osmnx, `network_type="walk"` (66,622 edges)
+
+
+Park Dataset — Before & After Filtering
+
+| Layer           | Before | After |
+| ar_vrd_all      | 3,814  | 2,235 |
+| park_garden_all | 1,030  | 1,030 |
+| pe_unis_all     | 542    | 542   |
+| Total.          | 5,386  | 3,807 |
+
+ar_vrd Filtering
+- Method: count of building footprints intersecting each park polygon
+- Threshold chosen: ≤ 6 buildings (empirically determined via QGIS visual inspection)
+- Removed: 1,579 polygons (41.4% of ar_vrd)
+- Rationale: ar_vrd polygons with >6 intersecting footprints were identified as residential block interiors rather than public green spaces
+
+| Threshold | Kept | Removed | % removed |
+| ≤ 2 | 1,599 | 2,215 | 58.1% |
+| ≤ 4 | 1,958 | 1,856 | 48.7% |
+| ≤ 6 | 2,235 | 1,579 | 41.4% ← chosen |
+| ≤ 8 | 2,453 | 1,361 | 35.7% |
+| ≤ 10 | 2,616 | 1,198 | 31.4% |
+| ≤ 15 | 2,974 | 840 | 22.0% |
+
+Distribution of buildings inside ar_vrd polygons: mean 10.5, median 4.0, max 201.
+
+Park Entrance Detection
+- Raw entrance points: 10,246
+- Parks with no walkable entrance: 2,680 (70% of 3,807)
+- Entrance points after 20m deduplication: 3,528
+
+Routing — Isochrone Method
+- One 300m walking isochrone per entrance point (3,528 GraphHopper queries)
+- Buildings matched via spatial join (point-in-polygon)
+
+Results
+
+| | n | % |
+| Total civici | 77,630 | 100% |
+| Within 300m walk | 53,442 | 68.8% |
+| Outside 300m | 24,188 | 31.2% |
+
+
+Park type matched to reachable buildings
+
+| Park type | Matched buildings |
+| ar_vrd_all | 39,431 |
+| park_garden_all | 10,048 |
+| pe_unis_all | 3,963 |
+
+Park size (reachable parks)
+- Mean: 1.01 ha, Median: 0.24 ha, Min: 0.00 ha, Max: 45.60 ha
+
+Limitations
+- 2,680 parks excluded — no OSM walkable edge intersects boundary (likely private/inaccessible)
+- 20m deduplication threshold not backed by literature
+- ar_vrd threshold of ≤6 buildings empirically chosen, not literature-derived — sensitivity table provided above
+- Address points are civic addresses, not building centroids or façade points
+- Isochrone method gives binary access (yes/no within 300m), not exact walking distance
+
+
+
