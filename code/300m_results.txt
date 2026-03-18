@@ -1,70 +1,98 @@
 300m Park Access Indicator — Bologna
-
 Final Statistics
+================================================================================
 
-Data Sources
+
+DATA SOURCES
+────────────────────────────────────────────────────────────────────────────────
 - Address points (civici): Bologna Open Data — rifter_civici_pt (77,630 points)
-- Parks/greenery: DBSN (`ar_vrd`, `pe_unis`) + OSM (`park_garden`)
-- Street network: OSM via osmnx, `network_type="walk"` (66,622 edges)
+- Parks/greenery: DBSN (ar_vrd, pe_unis) + OSM (park_garden)
+- Street network: OSM via osmnx, network_type="walk" (66,622 edges)
 
 
-Park Dataset — Before & After Filtering
+PARK DATASET — BEFORE & AFTER FILTERING
+────────────────────────────────────────────────────────────────────────────────
+Layer               Before    After
+ar_vrd_all           3,814    2,235
+park_garden_all      1,030    1,030
+pe_unis_all            542      542
+Total                5,386    3,807
 
-| Layer           | Before | After |
-| ar_vrd_all      | 3,814  | 2,235 |
-| park_garden_all | 1,030  | 1,030 |
-| pe_unis_all     | 542    | 542   |
-| Total.          | 5,386  | 3,807 |
-
-ar_vrd Filtering
+AR_VRD FILTERING 
+────────────────────────────────────────────────────────────────────────────────
 - Method: count of building footprints intersecting each park polygon
-- Threshold chosen: ≤ 6 buildings (empirically determined via QGIS visual inspection)
+- Threshold chosen: ≤ 6 buildings (choosen via QGIS visual inspection ... )
 - Removed: 1,579 polygons (41.4% of ar_vrd)
-- Rationale: ar_vrd polygons with >6 intersecting footprints were identified as residential block interiors rather than public green spaces
+- Rationale: ar_vrd polygons with >6 intersecting footprints were identified as
+  residential block interiors rather than public green spaces
 
-| Threshold | Kept | Removed | % removed |
-| ≤ 2 | 1,599 | 2,215 | 58.1% |
-| ≤ 4 | 1,958 | 1,856 | 48.7% |
-| ≤ 6 | 2,235 | 1,579 | 41.4% ← chosen |
-| ≤ 8 | 2,453 | 1,361 | 35.7% |
-| ≤ 10 | 2,616 | 1,198 | 31.4% |
-| ≤ 15 | 2,974 | 840 | 22.0% |
+Distribution of buildings-inside count for ar_vrd polygons:
+  count    3,814
+  mean        10.50
+  std         16.95
+  min          0.00
+  25%          1.00
+  50%          4.00
+  75%         14.00
+  max        201.00
 
-Distribution of buildings inside ar_vrd polygons: mean 10.5, median 4.0, max 201.
+Sensitivity of threshold choice:
+  threshold         kept  removed  % removed
+  ------------------------------------------
+  <= 2             1,599    2,215      58.1%
+  <= 4             1,958    1,856      48.7%
+  <= 6             2,235    1,579      41.4%  ← chosen
+  <= 8             2,453    1,361      35.7%
+  <= 10            2,616    1,198      31.4%
+  <= 15            2,974      840      22.0%
 
-Park Entrance Detection
+
+PARK ENTRANCE DETECTION
+────────────────────────────────────────────────────────────────────────────────
 - Raw entrance points: 10,246
-- Parks with no walkable entrance: 2,680 (70% of 3,807)
+- Parks with no walkable entrance: 2,680 
 - Entrance points after 20m deduplication: 3,528
 
-Routing — Isochrone Method
+
+ROUTING — ISOCHRONE METHOD
+────────────────────────────────────────────────────────────────────────────────
 - One 300m walking isochrone per entrance point (3,528 GraphHopper queries)
 - Buildings matched via spatial join (point-in-polygon)
 
-Results
 
-| | n | % |
-| Total civici | 77,630 | 100% |
-| Within 300m walk | 53,442 | 68.8% |
-| Outside 300m | 24,188 | 31.2% |
+RESULTS
+────────────────────────────────────────────────────────────────────────────────
+Address points
+  Total civici:                  77,630
+  Within 300m walk of park:      53,442  (68.8%)
+  Outside 300m:                  24,188  (31.2%)
+  No park reachable (NaN):       24,188
 
+Parks (filtered)
+  Total:                            698
+  area verde(dsbn)                      3,814
+  park_garden_all (osm)                1,030
+  pe_unis_all (dsbn)                       542
+
+Park size — buildings matched to a reachable park
+  Mean:    1.01 ha
+  Median:  0.24 ha
+  Min:     0.00 ha
+  Max:    45.60 ha
 
 Park type matched to reachable buildings
+  ar_vrd_all         39,431
+  park_garden_all    10,048
+  pe_unis_all         3,963
 
-| Park type | Matched buildings |
-| ar_vrd_all | 39,431 |
-| park_garden_all | 10,048 |
-| pe_unis_all | 3,963 |
 
-Park size (reachable parks)
-- Mean: 1.01 ha, Median: 0.24 ha, Min: 0.00 ha, Max: 45.60 ha
-
-Limitations
-- 2,680 parks excluded — no OSM walkable edge intersects boundary (likely private/inaccessible)
+LIMITATIONS
+────────────────────────────────────────────────────────────────────────────────
+- 2,680 parks excluded — no OSM walkable edge intersects boundary
+  (likely private/inaccessible)
 - 20m deduplication threshold not backed by literature
-- ar_vrd threshold of ≤6 buildings empirically chosen, not literature-derived — sensitivity table provided above
+- ar_vrd threshold of ≤6 buildings empirically chosen, not literature-derived
+  — sensitivity table provided above
 - Address points are civic addresses, not building centroids or façade points
-- Isochrone method gives binary access (yes/no within 300m), not exact walking distance
-
-
-
+- Isochrone method gives binary access (yes/no within 300m), not exact
+  walking distance
