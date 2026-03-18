@@ -6,13 +6,13 @@ GREEN AREAS — BOLOGNA  |  Data Exploration Notes
 
 1. DBSN — AR_VRD (Area Verde)
 ──────────────────────────────
-Attribute pe_uins_ty:
-  01  not qualified garden
-  95  other
-
-Stats:
-  All parks/gardens (types 01, 95) : 3,814 features  |  3,050.0 ha  |  21.7% Bologna
-  Eligible (≥ 1 ha)                :   793 features  |  2,359.9 ha  |  16.8% Bologna
+Total features: 26,279
+ar_vrd_ty
+01    26231
+95       48
+ar_vrd: parks+gardens (types 01,95), all sizes:
+Features : 3,814
+Area (ha): median=0.0, total=3050.0
 
 ──────────────────────────────────────────────────────────────
 
@@ -35,8 +35,10 @@ Key attributes:
              - Not populated in Bologna data -  filter dropped
 
 Stats:
-  All bosco clipped to Bologna  : 178 features  |  746.1 ha  |  5.3% Bologna
-  Suitable (ty 01+02, ≥ 1 ha)  :  89 features  |  707.4 ha  |  5.0% Bologna
+
+bosco suitable:
+Features : 173
+Area (ha): median=1.0, total=728.9
 
 Filter applied: bosco_ty in [01, 02]  — excludes unknowns (91, 95)
 No access/public field exists -  public access assumed
@@ -59,9 +61,11 @@ Key attribute pe_uins_ty:
   1103  Park
 
 Stats:
-  All pe_unis clipped to Bologna  : 673 features  |  1,647.6 ha  |  11.7% Bologna
-  ≥ 1 ha (all types)              : 274 features  |  1,580.5 ha  |   6.3% Bologna
-  Green types only (11+sub, ≥1ha) : 190 features  |    887.7 ha  |   6.3% Bologna
+
+Total features : 3,794
+pe_unis — all, clipped to Bologna
+Features : 673
+Area (ha): median=0.0, total=1647.6
 
 Filter applied: pe_uins_ty in [11, 1101, 1102, 1103], ≥ 1 ha
 
@@ -72,21 +76,27 @@ Filter applied: pe_uins_ty in [11, 1101, 1102, 1103], ≥ 1 ha
 Access filter: exclude access in [private, no, restricted, permit, customers]
 
 Stats:
-  All polygons clipped        : 1,055 features  |  1,184.4 ha  |   8.4% Bologna
-  Public only                 : 1,030 features  |  1,178.6 ha  |   8.4% Bologna
-  Eligible (public, ≥ 1 ha)  :   208 features  |  1,057.5 ha  |   7.5% Bologna
+
+OSM parks+gardens — all:
+Features : 1,055
+Area (ha): median=0.0, total=1184.4
+OSM parks+gardens — public (access not private/restricted)
+Features : 1,030
+Area (ha): median=0.0, total=1178.6
 
 ──────────────────────────────────────────────────────────────
 
 
 SUMMARY
 ────────
-Layer                    Filter               n      ha     % Bologna
-DBSN ar_vrd              all parks/gardens  3,814  3,050.0    21.7
-DBSN ar_vrd              ≥ 1 ha (eligible)   793   2,359.9    16.8
-DBSN bosco               all                 178     746.1     5.3
-DBSN bosco               suitable ≥ 1 ha      89     707.4     5.0
-DBSN pe_unis             all                 673   1,647.6    11.7
-DBSN pe_unis             green ≥ 1 ha        190     887.7     6.3
-OSM  park/garden         all public        1,030   1,178.6     8.4
-OSM  park/garden         public ≥ 1 ha       208   1,057.5     7.5
+          layer            filter    n  total_ha  pct
+    DBSN ar_vrd all parks/gardens 3814    3050.0 21.7
+     DBSN bosco               all  173     728.9  5.2
+   DBSN pe_unis               all  542     935.4  6.7
+OSM park/garden        all public 1030    1178.6  8.4
+
+
+FINAL FILE:
+ ar_vrd_all                 (3,814 features)
+ pe_unis_all                (542 features)
+ osm_all_public             (1,030 features)
