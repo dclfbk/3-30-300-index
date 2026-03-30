@@ -19,4 +19,5 @@ lightning_logs/version_0
 cache/
 .pkl
 
-code/java_gh.txt
+code/graphhopper_setup_notes.txt
+Bologna.osm.pbf
