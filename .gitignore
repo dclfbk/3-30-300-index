@@ -2,6 +2,7 @@ data/
 venv/
 __pycache__/
 
+
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 # Ignore virtual environment directories
@@ -18,6 +19,11 @@ ENV/
 lightning_logs/version_0
 cache/
 .pkl
+.vscode
+
 
 code/graphhopper_setup_notes.txt
 Bologna.osm.pbf
+code/300_walkability_iso_othercities.py
+data/in_process
+Bologna.osm.pbf.icloud
