@@ -10,29 +10,37 @@ DATA SOURCES
 
 PARK ENTRANCE DETECTION
 ────────────────────────────────────────────────────────────────────────────────
-OSM entrance nodes found: 375
+5,224 entrance points across 1409 parks
 
-Park entrances: 100%|██████████| 1568/1568 [00:13<00:00, 115.81it/s]
+OSM nodes: 14 | 
+boundary∩street: 1063 | 
+centroid snap: 331 | 
+extended snap: 1
+Parks with no entrance: 159
 
-6,171 raw entrance points
-Parks resolved by step: OSM nodes=14, boundary=531, osm without entrance=703
-Parks with no entrance found: 320
-
-
-parks: 1568
-filter out: 320
-after filtering: 1248
+61,360 candidate civici (79.0% of total)
+576,539 (civico, entrance) pairs to route
+avg 9.4 entrance candidates per civico
 
 RESULTS
 ────────────────────────────────────────────────────────────────────────────────
+Total civici:                    77,630
+Within 300 m walk:               59,266  (76.3%)
+  of which routed by GraphHopper:61,360
+  of which inside park: 615
+No isochrone match at all:       16,270
 
-Isochrones: 100%|██████████| 6171/6171 [06:50<00:00, 15.04it/s]  
-6,171 isochrones computed
-1,248 parks with at least one isochrone
-
-Isochrone candidates (to be routed): 220,298 (92.0%)
 
 
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────
 Total parks after filtering:   1568
 Total entrances:               6171
 park_reach rows:               1248
