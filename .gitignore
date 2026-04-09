@@ -21,9 +21,6 @@ cache/
 .pkl
 .vscode
 
-
-code/graphhopper_setup_notes.txt
+code/graphhopper_setup.txt
 Bologna.osm.pbf
-code/300_walkability_iso_othercities.py
-data/in_process
 Bologna.osm.pbf.icloud
