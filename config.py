@@ -45,6 +45,7 @@ CITIES: dict[str, dict] = {
             "boundary":      "data/bologna_boundary.gpkg",
             "buildings_sn":  "data/bologna_buildings_streetnum.gpkg",
             "parks_all":    "data/300m/bologna_greenery.gpkg",
+            "zones":        "data/300m/bologna_aree_statistiche.geojson",
         },
     },
     "milano": {
