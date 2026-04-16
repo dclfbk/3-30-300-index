@@ -33,7 +33,8 @@ nord-ovest-latest.osm.pbf
 *.osm.pbf
 
 3_30_300.duckdb
-3_30_300.wal
+3_30_300.duckdb.wal
+
 *.duckdb
 *.wal
 
