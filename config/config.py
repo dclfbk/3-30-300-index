@@ -4,7 +4,7 @@ import pandas as pd
 import duckdb
 from shapely import wkt as shapely_wkt
 
-ROOT_PATH = "/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index"
+ROOT_PATH = ""
 
 try:
     ROOT_DIR = Path(__file__).parent.resolve()
