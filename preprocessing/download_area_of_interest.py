@@ -2,10 +2,10 @@ import osmnx as ox
 import geopandas as gpd
 
 #always simply change the name, when testing new city
-city = "milano"
+city = "torino"
 
 print(f"{city} boundary:")
-boundary= ox.geocode_to_gdf("Milano, Italy")
+boundary= ox.geocode_to_gdf("Torino, Italy")
 boundary.to_file(f"data/{city}_boundary.gpkg", driver="GPKG")
 print(f"saved - data/{city}_boundary.gpkg")
 

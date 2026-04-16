@@ -1,8 +1,0 @@
- python load_data_db.py milano
-  loading raw.milano_boundary ← data/milano/milano_boundary.gpkg
-  loading raw.milano_buildings ← data/milano/300m/milano_buildings_streetnum.gpkg
-  SKIP raw.milano_zones — file not found: data/milano/300m/milano_zones.geojson
-  loading raw.milano_parks_municipal ← data/milano/300m/milano_municipality_parks.gpkg
-  SKIP raw.milano_parks_osm — file not found: data/milano/300m/milano_municipality_osm.gpkg
-
-milano — raw schema loaded (skipped files listed above)
