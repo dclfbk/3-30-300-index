@@ -37,6 +37,7 @@ Notes on compatibility
 import sys
 import os
 import shutil
+import pandas as pd
 
 # ── Root path ──────────────────────────────────────────────────────────────────
 

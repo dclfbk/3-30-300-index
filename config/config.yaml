@@ -23,7 +23,7 @@ bari:
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
   park_layers:
-    municipal: "data/bari/300m/parks_raw_municipal.gpkg"
+    municipal: "data/bari/300m/bari_municipality_parks.gpkg"
     osm: "data/bari/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/bari/3trees/bari_cadastral.geojson"
@@ -39,18 +39,19 @@ bari:
     tree_polygons: "data/bari/3trees/bari_tree_polygons.gpkg"
 
 bolzano:
-  query: "Bolzano, Italy"
+  query: "R47207"
+  by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
   park_layers:
-    municipal: "data/bolzano/300m/parks_raw_municipal.gpkg"
+    municipal: "data/bolzano/300m/bolzano_municipality_parks.gpkg"
     osm: "data/bolzano/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/bolzano/3trees/bolzano_cadastral.geojson"
     gba: "data/bolzano/3trees/bolzano_gba.geojson"
   data_sources:
     boundary: "data/bolzano/bolzano_boundary.gpkg"
-    buildings_sn: "data/bolzano/bolzano_buildings_streetnum.gpkg"
+    buildings_sn: "data/bolzano/bolzano_buildings_streetnum.gpkg" #missing!
     buildings: "data/bolzano/bolzano_buildings.gpkg"
     parks_gardens: "data/bolzano/300m/bolzano_greenery.gpkg"
     zones: "data/bolzano/300m/bolzano_zones.geojson"
@@ -63,7 +64,7 @@ firenze:
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "quartiere"
   park_layers:
-    pe_unis: "data/firenze/300m/parks_raw_pe_unis.gpkg"
+    pe_unis: "data/firenze/300m/firenze_pe_unis.gpkg"
     osm: "data/firenze/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/firenze/3trees/firenze_cadastral.geojson"
@@ -83,8 +84,8 @@ genova:
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
   park_layers:
-    pe_unis: "data/genova/300m/parks_raw_pe_unis.gpkg"
-    area_verde: "data/genova/300m/parks_raw_area_verde.gpkg"
+    pe_unis: "data/genova/300m/genova_pe_uins.gpkg"
+    area_verde: "data/genova/300m/genova_area_verde.gpkg"
     osm: "data/genova/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/genova/3trees/genova_cadastral.geojson"
@@ -124,14 +125,14 @@ napoli:
   building_id_col: "ID"
   neighbourhood_col: null
   park_layers:
-    pe_unis: "data/napoli/300m/parks_raw_pe_unis.gpkg"
+    pe_unis: "data/napoli/300m/napoli_pe_unis.gpkg"
     osm: "data/napoli/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/napoli/3trees/napoli_cadastral.geojson"
     gba: "data/napoli/3trees/napoli_gba.geojson"
   data_sources:
     boundary: "data/napoli/napoli_boundary.gpkg"
-    buildings_sn: "data/napoli/napoli_buildings_streetnum_osm.geojson"
+    buildings_sn: "data/napoli/napoli_buildings_streetnum.gpkg"
     buildings: "data/napoli/napoli_buildings.gpkg"
     parks_gardens: "data/napoli/300m/napoli_greenery.gpkg"
     zones: "data/napoli/300m/napoli_zones.geojson"
@@ -144,14 +145,14 @@ palermo:
   building_id_col: "ID"
   neighbourhood_col: null
   park_layers:
-    pe_unis: "data/palermo/300m/parks_raw_pe_unis.gpkg"
+    pe_unis: "data/palermo/300m/palermo_pe_unis.gpkg"
     osm: "data/palermo/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/palermo/3trees/palermo_cadastral.geojson"
     gba: "data/palermo/3trees/palermo_gba.geojson"
   data_sources:
     boundary: "data/palermo/palermo_boundary.gpkg"
-    buildings_sn: "data/palermo/palermo_buildings_streetnum_osm.geojson"
+    buildings_sn: "data/palermo/palermo_buildings_streetnum.gpkg"
     buildings: "data/palermo/palermo_buildings.gpkg"
     parks_gardens: "data/palermo/300m/palermo_greenery.gpkg"
     zones: "data/palermo/300m/palermo_zones.geojson"
@@ -165,6 +166,7 @@ roma:
   neighbourhood_col: "municipio"
   park_layers:
     municipal: "data/roma/300m/parks_raw_municipal.gpkg"
+    pe_unis: "data/roma/300m/parks_raw_pe_unis.gpkg"
     osm: "data/roma/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/roma/3trees/roma_cadastral.geojson"
@@ -200,11 +202,12 @@ torino:
     tree_polygons: "data/torino/3trees/torino_tree_polygons.gpkg"
 
 trento:
-  query: "Trento, Italy"
+  query: "R46663"
+  by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
   park_layers:
-    municipal: "data/trento/300m/parks_raw_municipal.gpkg"
+    municipal: "data/trento/300m/trento_municipality_parks.gpkg"
     osm: "data/trento/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/trento/3trees/trento_cadastral.geojson"
@@ -220,11 +223,12 @@ trento:
     tree_polygons: "data/trento/3trees/trento_tree_polygons.gpkg"
 
 verona:
-  query: "Verona, Italy"
+  query: "R44107"
+  by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
   park_layers:
-    pe_unis: "data/verona/300m/parks_raw_pe_unis.gpkg"
+    pe_unis: "data/verona/300m/verona_pe_unis.gpkg"
     osm: "data/verona/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/verona/3trees/verona_cadastral.geojson"
@@ -238,6 +242,15 @@ verona:
     canopy_raster: "data/verona/30/verona_ndvi.tif"
     orthophoto: "data/verona/3trees/verona_orthophoto.tif"
     tree_polygons: "data/verona/3trees/verona_tree_polygons.gpkg"
+
+
+
+
+
+
+
+
+
 
 
 #regional capitals missing:

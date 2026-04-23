@@ -1,17 +1,29 @@
-from pathlib import Path
 import geopandas as gpd
 import pandas as pd
 import duckdb
-from shapely import wkt as shapely_wkt
 import yaml
 
+import sys
+from pathlib import Path
 
-ROOT_PATH = Path(__file__).resolve().parent.parent  
-ROOT_DIR  = ROOT_PATH  
+project_root = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index")
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
-DATA_DIR = ROOT_DIR / "data"
-LOGS_DIR = ROOT_DIR / "logs"
-DB_PATH  = ROOT_DIR / "3_30_300.duckdb"
+ROOT_PATH = Path(__file__).resolve().parent.parent
+ROOT_DIR  = ROOT_PATH
+DATA_DIR  = ROOT_DIR / "data"
+LOGS_DIR  = ROOT_DIR / "logs"
+
+DB_PATH = "/Users/terezasaskova/3_30_300_master.duckdb"
+
+CRS_WGS  = "EPSG:4326"
+CRS_METRIC   = "EPSG:32632"
+
+GH_PORT  = 8989
+WALKING_DISTANCE = 300   # metres
+EUCLID_CUTOFF    = 420   # metres — Euclidean pre-filter before point-to-point routing
+
 
 for d in [DATA_DIR, LOGS_DIR]:
     d.mkdir(parents=True, exist_ok=True)
@@ -28,30 +40,31 @@ EUCLID_CUTOFF = 420
 
 
 _CITIES_FILE = Path(__file__).parent / "config.yaml"
+
 with open(_CITIES_FILE) as f:
     CITIES = yaml.safe_load(f)
 
 
 def get_city_cfg(city_key: str) -> dict:
     if city_key not in CITIES:
-        raise ValueError(
-            f"Unknown city '{city_key}'. Available: {', '.join(CITIES)}"
-        )
-    return {"key": city_key, **CITIES[city_key]}
+        raise ValueError(f"Unknown city '{city_key}'. Available: {', '.join(CITIES)}")
+    cfg = CITIES[city_key]
+    if cfg is None:
+        raise ValueError(f"City '{city_key}' has no config defined yet.")
+    return {"key": city_key, **cfg}
 
 
 def get_output_paths(city_key: str) -> dict:
-    base = ROOT_DIR / "output" / city_key
+    base = ROOT_DIR / "results" / city_key
     base.mkdir(parents=True, exist_ok=True)
-    (ROOT_DIR / "fig" / city_key).mkdir(parents=True, exist_ok=True)
+    (ROOT_DIR / "figures" / city_key).mkdir(parents=True, exist_ok=True)
     return {
         "gpkg":    str(base / f"{city_key}_3_30_300_results.gpkg"),
         "csv":     str(base / f"{city_key}_3_30_300_results.csv"),
         "geojson": str(base / f"{city_key}_3_30_300_results.geojson"),
         "parquet": str(base / f"{city_key}_3_30_300_results.parquet"),
-        "fig_dir": str(ROOT_DIR / "fig" / city_key),
+        "fig_dir": str(ROOT_DIR / "figures" / city_key),
     }
-
 
 def get_produced_paths(city_key: str) -> dict:
     base = DATA_DIR / city_key
@@ -74,38 +87,47 @@ def connect_db() -> duckdb.DuckDBPyConnection:
 
 
 
-def gdf_to_duckdb(con, gdf, table_name):
-    """
-    Saves a GeoDataFrame to DuckDB using native spatial types.
-    """
-    if "." in table_name:
-        schema = table_name.split(".")[0]
-        con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
-    
-    #Convert geometry to WKB which DuckDB Spatial understands natively
-    temp_df = gdf.copy()
-    temp_df['geometry'] = temp_df.geometry.to_wkb()
-    
-    # Use DuckDB to register the dataframe and create a table
-    con.execute(f"CREATE OR REPLACE TABLE {table_name} AS "
-                f"SELECT * EXCLUDE geometry, ST_GeomFromWKB(geometry) AS geometry "
-                f"FROM temp_df")
-    
-    print(f"{table_name}: {len(gdf)} rows written")
+def gdf_to_duckdb(con, gdf: gpd.GeoDataFrame, full_table: str):
+    schema, table = full_table.split(".", 1)
+    df = gdf.copy()
+    df["geometry"] = gdf.geometry.to_wkb().apply(
+        lambda x: bytes(x) if x is not None else None
+    )
+    for col in df.columns:
+        if col == "geometry":
+            continue
+        try:
+            df[col] = df[col].astype(object).where(df[col].notna(), None)
+        except Exception:
+            df[col] = df[col].apply(lambda x: str(x) if pd.notna(x) else None)
+
+    con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+    con.register("_tmp", df)
+    con.execute(f"""
+        CREATE OR REPLACE TABLE {full_table} AS 
+        SELECT * EXCLUDE geometry,
+               ST_GeomFromWKB(geometry) AS geometry
+        FROM _tmp
+    """)
+    con.unregister("_tmp")
+    print(f"{full_table}: {len(df)} rows written")
 
 def load_table(con, schema, table, crs=CRS_METRIC):
-    """
-    Loads a DuckDB table into a GeoPandas GeoDataFrame natively.
-    """
-    # Fetch as a dataframe, converting spatial type to WKB in the query
+    # Check if geometry is already GEOMETRY type or raw BLOB
+    col_types = {r[0]: r[1] for r in con.execute(f"DESCRIBE {schema}.{table}").fetchall()}
+    
+    if col_types.get("geometry") == "GEOMETRY":
+        geom_expr = "ST_AsWKB(geometry) AS geometry"
+    else:
+        # Already raw WKB bytes stored as BLOB
+        geom_expr = "geometry"
+    
     df = con.execute(f"""
-        SELECT * EXCLUDE geometry, 
-               ST_AsWKB(geometry) AS geometry 
+        SELECT * EXCLUDE geometry, {geom_expr}
         FROM {schema}.{table}
     """).df()
+    
     df["geometry"] = df["geometry"].apply(bytes)
-
-    # GeoPandas can load the whole column from WKB in one go (vectorized)
     gdf = gpd.GeoDataFrame(
         df.drop(columns="geometry"),
         geometry=gpd.array.from_wkb(df["geometry"]),
