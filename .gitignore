@@ -1,49 +1,44 @@
-data/
-
-venv/
+# ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
-*.__pycache__
+*.pyc
+*.pyo
+.pkl
 
-
-# Ignore Jupyter Notebook checkpoints
+# ── Jupyter ───────────────────────────────────────────────────────────────────
 .ipynb_checkpoints/
-# Ignore virtual environment directories
+
+# ── Virtual environments ──────────────────────────────────────────────────────
 venv/
 env/
 ENV/
 .venv/
-# Ignore Python bytecode files
-*.pyc
-*.pyo
-# Ignore macOS system files
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
 .DS_Store
 
-lightning_logs/version_0
-cache/
-.pkl
-.vscode
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
 
-code/graphhopper_setup.txt
-Bologna.osm.pbf
-Bologna.osm.pbf.icloud
-
-
-.nord-ovest-latest.osm.pbf.icloud
-nord-ovest-latest.osm.pbf
-*.osm.pbf
-
-3_30_300.duckdb
-3_30_300.duckdb.wal
-
-*.duckdb
-*.wal
-
+# ── Data & generated files ────────────────────────────────────────────────────
+data/
+figures/
 fig/
 results/
 logs/
+output/
+cache/
+config/
+lightning_logs/
 
-config/3_30_300.duckdb
-config/logs
-config/output
+# ── GraphHopper 
+*.osm.pbf
+*.icloud
+graph-cache*/
+graphhopper-web-11.0.jar
+config_active.yml
 
+*.duckdb
+*.wal
+3_30_300.duckdb
 
+notes.txt
