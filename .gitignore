@@ -32,6 +32,8 @@ lightning_logs/
 
 # ── GraphHopper 
 *.osm.pbf
+*.pbf
+*.osm.pbf.icloud
 *.icloud
 graph-cache*/
 graphhopper-web-11.0.jar
@@ -42,3 +44,6 @@ config_active.yml
 3_30_300.duckdb
 
 notes.txt
+training/
+scr/300m_computation.py
+scr/parks.py

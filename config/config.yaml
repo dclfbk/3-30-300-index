@@ -1,22 +1,40 @@
-bologna:
-  query: "Bologna, Italy"
+ancona:
+  query: "Ancona, Italy"
   building_id_col: "NUMEROCOMPLETO"
-  neighbourhood_col: "quartiere"
+  neighbourhood_col: null
   park_layers:
-    pe_unis: "data/bologna/300m/parks_raw_pe_unis.gpkg"
-    osm: "data/bologna/300m/parks_raw_osm.gpkg"
+    osm: "data/ancona/parks_raw_osm.gpkg"
   building_layers:
-    cadastral: "data/bologna/3trees/bologna_cadastral.geojson"
-    gba: "data/bologna/3trees/bologna_gba.geojson"
+    cadastral: "data/ancona/3trees/ancona_cadastral.geojson"
+    gba: "data/ancona/3trees/ancona_gba.geojson"
   data_sources:
-    boundary: "data/bologna/bologna_boundary.gpkg"
-    buildings_sn: "data/bologna/bologna_buildings_streetnum.gpkg"
-    buildings: "data/bologna/bologna_buildings.gpkg"
-    parks_gardens: "data/bologna/300m/bologna_greenery.gpkg"
-    zones: "data/bologna/300m/bologna_aree_statistiche.geojson"
-    canopy_raster: "data/bologna/30/bologna_ndvi.tif"
-    orthophoto: "data/bologna/3trees/bologna_orthophoto.tif"
-    tree_polygons: "data/bologna/3trees/bologna_tree_polygons.gpkg"
+    boundary: "data/ancona/ancona_boundary.gpkg"
+    buildings_sn: "data/ancona/ancona_buildings_streetnum.gpkg"
+    buildings: "data/ancona/ancona_buildings.gpkg"
+    parks_gardens: "data/ancona/ancona_greenery.gpkg"
+    zones: "data/ancona/ancona_zones.geojson"
+    canopy_raster: "data/ancona/ancona_ndvi.tif"
+    orthophoto: "data/ancona/ancona_orthophoto.tif"
+    tree_polygons: "data/ancona/ancona_tree_polygons.gpkg"
+
+aosta:
+  query: "Aosta, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    osm: "data/aosta/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/aosta/3trees/aosta_cadastral.geojson"
+    gba: "data/aosta/3trees/aosta_gba.geojson"
+  data_sources:
+    boundary: "data/aosta/aosta_boundary.gpkg"
+    buildings_sn: "data/aosta/aosta_buildings_streetnum.gpkg"
+    buildings: "data/aosta/aosta_buildings.gpkg"
+    parks_gardens: "data/aosta/aosta_greenery.gpkg"
+    zones: "data/aosta/aosta_zones.geojson"
+    canopy_raster: "data/aosta/aosta_ndvi.tif"
+    orthophoto: "data/aosta/aosta_orthophoto.tif"
+    tree_polygons: "data/aosta/aosta_tree_polygons.gpkg"
 
 bari:
   query: "Bari, Italy"
@@ -38,6 +56,26 @@ bari:
     orthophoto: "data/bari/3trees/bari_orthophoto.tif"
     tree_polygons: "data/bari/3trees/bari_tree_polygons.gpkg"
 
+bologna:
+  query: "Bologna, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: "quartiere"
+  park_layers:
+    pe_unis: "data/bologna/300m/parks_raw_pe_unis.gpkg"
+    osm: "data/bologna/300m/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/bologna/3trees/bologna_cadastral.geojson"
+    gba: "data/bologna/3trees/bologna_gba.geojson"
+  data_sources:
+    boundary: "data/bologna/bologna_boundary.gpkg"
+    buildings_sn: "data/bologna/bologna_buildings_streetnum.gpkg"
+    buildings: "data/bologna/bologna_buildings.gpkg"
+    parks_gardens: "data/bologna/300m/bologna_greenery.gpkg"
+    zones: "data/bologna/300m/bologna_aree_statistiche.geojson"
+    canopy_raster: "data/bologna/30/bologna_ndvi.tif"
+    orthophoto: "data/bologna/3trees/bologna_orthophoto.tif"
+    tree_polygons: "data/bologna/3trees/bologna_tree_polygons.gpkg"
+
 bolzano:
   query: "R47207"
   by_osmid: true
@@ -51,13 +89,70 @@ bolzano:
     gba: "data/bolzano/3trees/bolzano_gba.geojson"
   data_sources:
     boundary: "data/bolzano/bolzano_boundary.gpkg"
-    buildings_sn: "data/bolzano/bolzano_buildings_streetnum.gpkg" #missing!
+    buildings_sn: "data/bolzano/bolzano_buildings_streetnum.gpkg"
     buildings: "data/bolzano/bolzano_buildings.gpkg"
     parks_gardens: "data/bolzano/300m/bolzano_greenery.gpkg"
     zones: "data/bolzano/300m/bolzano_zones.geojson"
     canopy_raster: "data/bolzano/30/bolzano_ndvi.tif"
     orthophoto: "data/bolzano/3trees/bolzano_orthophoto.tif"
     tree_polygons: "data/bolzano/3trees/bolzano_tree_polygons.gpkg"
+
+cagliari:
+  query: "Cagliari, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    osm: "data/cagliari/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/cagliari/3trees/cagliari_cadastral.geojson"
+    gba: "data/cagliari/3trees/cagliari_gba.geojson"
+  data_sources:
+    boundary: "data/cagliari/cagliari_boundary.gpkg"
+    buildings_sn: "data/cagliari/cagliari_buildings_streetnum.gpkg"
+    buildings: "data/cagliari/cagliari_buildings.gpkg"
+    parks_gardens: "data/cagliari/cagliari_greenery.gpkg"
+    zones: "data/cagliari/cagliari_zones.geojson"
+    canopy_raster: "data/cagliari/cagliari_ndvi.tif"
+    orthophoto: "data/cagliari/cagliari_orthophoto.tif"
+    tree_polygons: "data/cagliari/cagliari_tree_polygons.gpkg"
+
+campobasso:
+  query: "Campobasso, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    osm: "data/campobasso/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/campobasso/3trees/campobasso_cadastral.geojson"
+    gba: "data/campobasso/3trees/campobasso_gba.geojson"
+  data_sources:
+    boundary: "data/campobasso/campobasso_boundary.gpkg"
+    buildings_sn: "data/campobasso/campobasso_buildings_streetnum.gpkg"
+    buildings: "data/campobasso/campobasso_buildings.gpkg"
+    parks_gardens: "data/campobasso/campobasso_greenery.gpkg"
+    zones: "data/campobasso/campobasso_zones.geojson"
+    canopy_raster: "data/campobasso/campobasso_ndvi.tif"
+    orthophoto: "data/campobasso/campobasso_orthophoto.tif"
+    tree_polygons: "data/campobasso/campobasso_tree_polygons.gpkg"
+
+catanzaro:
+  query: "Catanzaro, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    osm: "data/catanzaro/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/catanzaro/3trees/catanzaro_cadastral.geojson"
+    gba: "data/catanzaro/3trees/catanzaro_gba.geojson"
+  data_sources:
+    boundary: "data/catanzaro/catanzaro_boundary.gpkg"
+    buildings_sn: "data/catanzaro/catanzaro_buildings_streetnum.gpkg"
+    buildings: "data/catanzaro/catanzaro_buildings.gpkg"
+    parks_gardens: "data/catanzaro/catanzaro_greenery.gpkg"
+    zones: "data/catanzaro/catanzaro_zones.geojson"
+    canopy_raster: "data/catanzaro/catanzaro_ndvi.tif"
+    orthophoto: "data/catanzaro/catanzaro_orthophoto.tif"
+    tree_polygons: "data/catanzaro/catanzaro_tree_polygons.gpkg"
 
 firenze:
   query: "Florence, Italy"
@@ -99,6 +194,25 @@ genova:
     canopy_raster: "data/genova/30/genova_ndvi.tif"
     orthophoto: "data/genova/3trees/genova_orthophoto.tif"
     tree_polygons: "data/genova/3trees/genova_tree_polygons.gpkg"
+
+laquila:
+  query: "L'Aquila, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    osm: "data/laquila/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/laquila/3trees/laquila_cadastral.geojson"
+    gba: "data/laquila/3trees/laquila_gba.geojson"
+  data_sources:
+    boundary: "data/laquila/laquila_boundary.gpkg"
+    buildings_sn: "data/laquila/laquila_buildings_streetnum.gpkg"
+    buildings: "data/laquila/laquila_buildings.gpkg"
+    parks_gardens: "data/laquila/laquila_greenery.gpkg"
+    zones: "data/laquila/laquila_zones.geojson"
+    canopy_raster: "data/laquila/laquila_ndvi.tif"
+    orthophoto: "data/laquila/laquila_orthophoto.tif"
+    tree_polygons: "data/laquila/laquila_tree_polygons.gpkg"
 
 milano:
   query: "Milan, Italy"
@@ -159,6 +273,46 @@ palermo:
     canopy_raster: "data/palermo/30/palermo_ndvi.tif"
     orthophoto: "data/palermo/3trees/palermo_orthophoto.tif"
     tree_polygons: "data/palermo/3trees/palermo_tree_polygons.gpkg"
+
+perugia:
+  query: "Perugia, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    ar_vrd: "data/perugia/perugia_ar_vrd.gpkg"
+    osm: "data/perugia/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/perugia/3trees/perugia_cadastral.geojson"
+    gba: "data/perugia/3trees/perugia_gba.geojson"
+  data_sources:
+    boundary: "data/perugia/perugia_boundary.gpkg"
+    buildings_sn: "data/perugia/perugia_buildings_streetnum.gpkg"
+    buildings: "data/perugia/perugia_buildings.gpkg"
+    parks_gardens: "data/perugia/perugia_greenery.gpkg"
+    zones: "data/perugia/perugia_zones.geojson"
+    canopy_raster: "data/perugia/perugia_ndvi.tif"
+    orthophoto: "data/perugia/perugia_orthophoto.tif"
+    tree_polygons: "data/perugia/perugia_tree_polygons.gpkg"
+
+potenza:
+  query: "Potenza, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    ar_vrd: "data/potenza/potenta_ar_vrd.gpkg"
+    osm: "data/potenza/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/potenza/3trees/potenza_cadastral.geojson"
+    gba: "data/potenza/3trees/potenza_gba.geojson"
+  data_sources:
+    boundary: "data/potenza/potenza_boundary.gpkg"
+    buildings_sn: "data/potenza/potenza_buildings_streetnum.gpkg"
+    buildings: "data/potenza/potenza_buildings.gpkg"
+    parks_gardens: "data/potenza/potenza_greenery.gpkg"
+    zones: "data/potenza/potenza_zones.geojson"
+    canopy_raster: "data/potenza/potenza_ndvi.tif"
+    orthophoto: "data/potenza/potenza_orthophoto.tif"
+    tree_polygons: "data/potenza/potenza_tree_polygons.gpkg"
 
 roma:
   query: "Rome, Italy"
@@ -222,6 +376,46 @@ trento:
     orthophoto: "data/trento/3trees/trento_orthophoto.tif"
     tree_polygons: "data/trento/3trees/trento_tree_polygons.gpkg"
 
+trieste:
+  query: "Trieste, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    pe_unis: "data/trieste/trieste_pe_unis.gpkg"
+    osm: "data/trieste/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/trieste/3trees/trieste_cadastral.geojson"
+    gba: "data/trieste/3trees/trieste_gba.geojson"
+  data_sources:
+    boundary: "data/trieste/trieste_boundary.gpkg"
+    buildings_sn: "data/trieste/trieste_buildings_streetnum.gpkg"
+    buildings: "data/trieste/trieste_buildings.gpkg"
+    parks_gardens: "data/trieste/trieste_greenery.gpkg"
+    zones: "data/trieste/trieste_zones.geojson"
+    canopy_raster: "data/trieste/trieste_ndvi.tif"
+    orthophoto: "data/trieste/trieste_orthophoto.tif"
+    tree_polygons: "data/trieste/trieste_tree_polygons.gpkg"
+
+venezia:
+  query: "Venice, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: null
+  park_layers:
+    pe_unis: "data/venezia/venezia_pe_unis.gpkg"
+    osm: "data/venezia/parks_raw_osm.gpkg"
+  building_layers:
+    cadastral: "data/venezia/3trees/venezia_cadastral.geojson"
+    gba: "data/venezia/3trees/venezia_gba.geojson"
+  data_sources:
+    boundary: "data/venezia/venezia_boundary.gpkg"
+    buildings_sn: "data/venezia/venezia_buildings_streetnum.gpkg"
+    buildings: "data/venezia/venezia_buildings.gpkg"
+    parks_gardens: "data/venezia/venezia_greenery.gpkg"
+    zones: "data/venezia/venezia_zones.geojson"
+    canopy_raster: "data/venezia/venezia_ndvi.tif"
+    orthophoto: "data/venezia/venezia_orthophoto.tif"
+    tree_polygons: "data/venezia/venezia_tree_polygons.gpkg"
+
 verona:
   query: "R44107"
   by_osmid: true
@@ -229,6 +423,7 @@ verona:
   neighbourhood_col: null
   park_layers:
     pe_unis: "data/verona/300m/verona_pe_unis.gpkg"
+    municipal: "data/verona/300m/verona_municipality_parks.gpkg"
     osm: "data/verona/300m/parks_raw_osm.gpkg"
   building_layers:
     cadastral: "data/verona/3trees/verona_cadastral.geojson"
@@ -242,25 +437,3 @@ verona:
     canopy_raster: "data/verona/30/verona_ndvi.tif"
     orthophoto: "data/verona/3trees/verona_orthophoto.tif"
     tree_polygons: "data/verona/3trees/verona_tree_polygons.gpkg"
-
-
-
-
-
-
-
-
-
-
-
-#regional capitals missing:
-aosta:
-venezia:
-trieste:
-perugia:
-ancona:
-l'aquila:
-campobasso:
-potenza:
-catanzaro:
-cagliari:
