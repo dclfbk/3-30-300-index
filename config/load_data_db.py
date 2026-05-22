@@ -72,12 +72,12 @@ RASTER_KEYS = {"canopy_raster", "orthophoto"}
 def load_vector(con, city, table_name, path, cfg=None):
     """
     Read a vector file, reproject to CRS_METRIC, validate geometries,
-    tag with city column, write to raw schema in DuckDB.
+    tag with city column, write to raw_2 schema in DuckDB.
 
     Returns True on success, False if file is missing or has no valid geometries.
     All dtype coercion is delegated to gdf_to_duckdb() in config.py.
     """
-    schema_table = f"raw.{table_name}"
+    schema_table = f"raw_2.{table_name}"
 
     if not os.path.exists(path):
         print(f"  SKIP  {schema_table}  (not found: {path})")
@@ -127,14 +127,14 @@ def load_city(con: duckdb.DuckDBPyConnection, city: str) -> None:
     print(f"CITY: {city.upper()}")
     print(f"{'='*60}")
 
-    con.execute("CREATE SCHEMA IF NOT EXISTS raw")
+    con.execute("CREATE SCHEMA IF NOT EXISTS raw_2")
 
     loaded, skipped = 0, 0
 
     # ── data_sources: load every vector key, skip rasters ─────────────────────
     for key, path in cfg["data_sources"].items():
         if key in RASTER_KEYS:
-            print(f"  SKIP  raw.{city}_{key}  (raster — not loaded into DuckDB)")
+            print(f"  SKIP  raw_2.{city}_{key}  (raster — not loaded into DuckDB)")
             skipped += 1
             continue
         ok = load_vector(con, city, f"{city}_{key}", path, cfg=cfg)
@@ -151,17 +151,17 @@ def load_city(con: duckdb.DuckDBPyConnection, city: str) -> None:
     # ── Summary ───────────────────────────────────────────────────────────────
     all_tables = con.execute("""
         SELECT table_name FROM information_schema.tables
-        WHERE table_schema = 'raw'
+        WHERE table_schema = 'raw_2'
         ORDER BY table_name
     """).df()["table_name"].tolist()
 
     city_tables = [t for t in all_tables if t.startswith(city)]
 
     print(f"\n  Summary for {city}: {loaded} loaded, {skipped} skipped")
-    print(f"  raw schema tables ({len(city_tables)}):")
+    print(f"  raw_2 schema tables ({len(city_tables)}):")
     for t in city_tables:
-        n = con.execute(f"SELECT COUNT(*) FROM raw.{t}").fetchone()[0]
-        print(f"    raw.{t}: {n:,} rows")
+        n = con.execute(f"SELECT COUNT(*) FROM raw_2.{t}").fetchone()[0]
+        print(f"    raw_2.{t}: {n:,} rows")
         
 def get_building_id_expr(city_key: str) -> str:
     """Returns a SQL expression for a stable unique building_id."""

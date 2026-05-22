@@ -16,7 +16,6 @@ DATA_DIR  = ROOT_DIR / "data"
 LOGS_DIR  = ROOT_DIR / "logs"
 
 DB_PATH = "/Users/terezasaskova/3_30_300_master.duckdb"
-
 CRS_WGS  = "EPSG:4326"
 CRS_METRIC   = "EPSG:32632"
 
@@ -61,7 +60,6 @@ def get_output_paths(city_key: str) -> dict:
     return {
         "gpkg":    str(base / f"{city_key}_3_30_300_results.gpkg"),
         "csv":     str(base / f"{city_key}_3_30_300_results.csv"),
-        "geojson": str(base / f"{city_key}_3_30_300_results.geojson"),
         "parquet": str(base / f"{city_key}_3_30_300_results.parquet"),
         "fig_dir": str(ROOT_DIR / "figures" / city_key),
     }
@@ -81,10 +79,9 @@ def connect_db() -> duckdb.DuckDBPyConnection:
     """
     con = duckdb.connect(str(DB_PATH))
     con.execute("LOAD spatial;")
-    for schema in ["raw", "preprocessing", "processing", "rule_300m"]:
+    for schema in ["raw", "preprocessing", "processing", "rule_300m", "raw_2", "preprocessing_2", "rule_300m_2"]:
         con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
     return con
-
 
 
 def gdf_to_duckdb(con, gdf: gpd.GeoDataFrame, full_table: str):

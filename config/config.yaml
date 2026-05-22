@@ -4,6 +4,7 @@ ancona:
   neighbourhood_col: null
   park_layers:
     osm: "data/ancona/parks_raw_osm.gpkg"
+    bosco: "data/ancona/ancona_bosco.gpkg"
   building_layers:
     cadastral: "data/ancona/3trees/ancona_cadastral.geojson"
     gba: "data/ancona/3trees/ancona_gba.geojson"
@@ -23,6 +24,7 @@ aosta:
   neighbourhood_col: null
   park_layers:
     osm: "data/aosta/parks_raw_osm.gpkg"
+    bosco: "data/aosta/aosta_bosco.gpkg"
   building_layers:
     cadastral: "data/aosta/3trees/aosta_cadastral.geojson"
     gba: "data/aosta/3trees/aosta_gba.geojson"
@@ -43,6 +45,7 @@ bari:
   park_layers:
     municipal: "data/bari/300m/bari_municipality_parks.gpkg"
     osm: "data/bari/300m/parks_raw_osm.gpkg"
+    bosco: "data/bari/bari_bosco.gpkg"
   building_layers:
     cadastral: "data/bari/3trees/bari_cadastral.geojson"
     gba: "data/bari/3trees/bari_gba.geojson"
@@ -63,6 +66,7 @@ bologna:
   park_layers:
     pe_unis: "data/bologna/300m/parks_raw_pe_unis.gpkg"
     osm: "data/bologna/300m/parks_raw_osm.gpkg"
+    bosco: "data/bologna/bologna_bosco.gpkg"
   building_layers:
     cadastral: "data/bologna/3trees/bologna_cadastral.geojson"
     gba: "data/bologna/3trees/bologna_gba.geojson"
@@ -84,6 +88,7 @@ bolzano:
   park_layers:
     municipal: "data/bolzano/300m/bolzano_municipality_parks.gpkg"
     osm: "data/bolzano/300m/parks_raw_osm.gpkg"
+    bosco: "data/bolzano/bolzano_bosco.gpkg"
   building_layers:
     cadastral: "data/bolzano/3trees/bolzano_cadastral.geojson"
     gba: "data/bolzano/3trees/bolzano_gba.geojson"
@@ -103,6 +108,7 @@ cagliari:
   neighbourhood_col: null
   park_layers:
     osm: "data/cagliari/parks_raw_osm.gpkg"
+    bosco: "data/cagliari/cagliari_bosco.gpkg"
   building_layers:
     cadastral: "data/cagliari/3trees/cagliari_cadastral.geojson"
     gba: "data/cagliari/3trees/cagliari_gba.geojson"
@@ -122,6 +128,7 @@ campobasso:
   neighbourhood_col: null
   park_layers:
     osm: "data/campobasso/parks_raw_osm.gpkg"
+    bosco: "data/campobasso/campobasso_bosco.gpkg"
   building_layers:
     cadastral: "data/campobasso/3trees/campobasso_cadastral.geojson"
     gba: "data/campobasso/3trees/campobasso_gba.geojson"
@@ -141,6 +148,7 @@ catanzaro:
   neighbourhood_col: null
   park_layers:
     osm: "data/catanzaro/parks_raw_osm.gpkg"
+    bosco: "data/catanzaro/catanzaro_bosco.gpkg"
   building_layers:
     cadastral: "data/catanzaro/3trees/catanzaro_cadastral.geojson"
     gba: "data/catanzaro/3trees/catanzaro_gba.geojson"
@@ -161,6 +169,7 @@ firenze:
   park_layers:
     pe_unis: "data/firenze/300m/firenze_pe_unis.gpkg"
     osm: "data/firenze/300m/parks_raw_osm.gpkg"
+    bosco: "data/firenze/firenze_bosco.gpkg"
   building_layers:
     cadastral: "data/firenze/3trees/firenze_cadastral.geojson"
     gba: "data/firenze/3trees/firenze_gba.geojson"
@@ -182,6 +191,7 @@ genova:
     pe_unis: "data/genova/300m/genova_pe_uins.gpkg"
     area_verde: "data/genova/300m/genova_area_verde.gpkg"
     osm: "data/genova/300m/parks_raw_osm.gpkg"
+    bosco: "data/genova/genova_bosco.gpkg"
   building_layers:
     cadastral: "data/genova/3trees/genova_cadastral.geojson"
     gba: "data/genova/3trees/genova_gba.geojson"
@@ -195,25 +205,6 @@ genova:
     orthophoto: "data/genova/3trees/genova_orthophoto.tif"
     tree_polygons: "data/genova/3trees/genova_tree_polygons.gpkg"
 
-laquila:
-  query: "L'Aquila, Italy"
-  building_id_col: "NUMEROCOMPLETO"
-  neighbourhood_col: null
-  park_layers:
-    osm: "data/laquila/parks_raw_osm.gpkg"
-  building_layers:
-    cadastral: "data/laquila/3trees/laquila_cadastral.geojson"
-    gba: "data/laquila/3trees/laquila_gba.geojson"
-  data_sources:
-    boundary: "data/laquila/laquila_boundary.gpkg"
-    buildings_sn: "data/laquila/laquila_buildings_streetnum.gpkg"
-    buildings: "data/laquila/laquila_buildings.gpkg"
-    parks_gardens: "data/laquila/laquila_greenery.gpkg"
-    zones: "data/laquila/laquila_zones.geojson"
-    canopy_raster: "data/laquila/laquila_ndvi.tif"
-    orthophoto: "data/laquila/laquila_orthophoto.tif"
-    tree_polygons: "data/laquila/laquila_tree_polygons.gpkg"
-
 milano:
   query: "Milan, Italy"
   building_id_col: "NUMEROCOMPLETO"
@@ -221,6 +212,7 @@ milano:
   park_layers:
     municipal: "data/milano/300m/milano_municipality_parks.gpkg"
     osm: "data/milano/300m/milano_osm.gpkg"
+    bosco: "data/milano/milano_bosco.gpkg"
   building_layers:
     cadastral: "data/milano/3trees/milano_cadastral.gpkg"
     gba: "data/milano/3trees/milano_gba.geojson"
@@ -241,6 +233,7 @@ napoli:
   park_layers:
     pe_unis: "data/napoli/300m/napoli_pe_unis.gpkg"
     osm: "data/napoli/300m/parks_raw_osm.gpkg"
+    bosco: "data/napoli/napoli_bosco.gpkg"
   building_layers:
     cadastral: "data/napoli/3trees/napoli_cadastral.geojson"
     gba: "data/napoli/3trees/napoli_gba.geojson"
@@ -261,6 +254,7 @@ palermo:
   park_layers:
     pe_unis: "data/palermo/300m/palermo_pe_unis.gpkg"
     osm: "data/palermo/300m/parks_raw_osm.gpkg"
+    bosco: "data/palermo/palermo_bosco.gpkg"
   building_layers:
     cadastral: "data/palermo/3trees/palermo_cadastral.geojson"
     gba: "data/palermo/3trees/palermo_gba.geojson"
@@ -281,6 +275,7 @@ perugia:
   park_layers:
     ar_vrd: "data/perugia/perugia_ar_vrd.gpkg"
     osm: "data/perugia/parks_raw_osm.gpkg"
+    bosco: "data/perugia/perugia_bosco.gpkg"
   building_layers:
     cadastral: "data/perugia/3trees/perugia_cadastral.geojson"
     gba: "data/perugia/3trees/perugia_gba.geojson"
@@ -301,6 +296,7 @@ potenza:
   park_layers:
     ar_vrd: "data/potenza/potenta_ar_vrd.gpkg"
     osm: "data/potenza/parks_raw_osm.gpkg"
+    bosco: "data/potenza/potenza_bosco.gpkg"
   building_layers:
     cadastral: "data/potenza/3trees/potenza_cadastral.geojson"
     gba: "data/potenza/3trees/potenza_gba.geojson"
@@ -322,6 +318,7 @@ roma:
     municipal: "data/roma/300m/parks_raw_municipal.gpkg"
     pe_unis: "data/roma/300m/parks_raw_pe_unis.gpkg"
     osm: "data/roma/300m/parks_raw_osm.gpkg"
+    bosco: "data/roma/roma_bosco.gpkg"
   building_layers:
     cadastral: "data/roma/3trees/roma_cadastral.geojson"
     gba: "data/roma/3trees/roma_gba.geojson"
@@ -342,6 +339,7 @@ torino:
   park_layers:
     pe_unis: "data/torino/300m/parks_raw_pe_unis.gpkg"
     osm: "data/torino/300m/parks_raw_osm.gpkg"
+    bosco: "data/torino/torino_bosco.gpkg"
   building_layers:
     cadastral: "data/torino/3trees/torino_cadastral.geojson"
     gba: "data/torino/3trees/torino_gba.geojson"
@@ -363,6 +361,7 @@ trento:
   park_layers:
     municipal: "data/trento/300m/trento_municipality_parks.gpkg"
     osm: "data/trento/300m/parks_raw_osm.gpkg"
+    bosco: "data/trento/trento_bosco.gpkg"
   building_layers:
     cadastral: "data/trento/3trees/trento_cadastral.geojson"
     gba: "data/trento/3trees/trento_gba.geojson"
@@ -383,6 +382,7 @@ trieste:
   park_layers:
     pe_unis: "data/trieste/trieste_pe_unis.gpkg"
     osm: "data/trieste/parks_raw_osm.gpkg"
+    bosco: "data/trieste/trieste_bosco.gpkg"
   building_layers:
     cadastral: "data/trieste/3trees/trieste_cadastral.geojson"
     gba: "data/trieste/3trees/trieste_gba.geojson"
@@ -403,6 +403,7 @@ venezia:
   park_layers:
     pe_unis: "data/venezia/venezia_pe_unis.gpkg"
     osm: "data/venezia/parks_raw_osm.gpkg"
+    bosco: "data/venezia/venezia_bosco.gpkg"
   building_layers:
     cadastral: "data/venezia/3trees/venezia_cadastral.geojson"
     gba: "data/venezia/3trees/venezia_gba.geojson"
@@ -425,6 +426,7 @@ verona:
     pe_unis: "data/verona/300m/verona_pe_unis.gpkg"
     municipal: "data/verona/300m/verona_municipality_parks.gpkg"
     osm: "data/verona/300m/parks_raw_osm.gpkg"
+    bosco: "data/verona/verona_bosco.gpkg"
   building_layers:
     cadastral: "data/verona/3trees/verona_cadastral.geojson"
     gba: "data/verona/3trees/verona_gba.geojson"

@@ -21,7 +21,7 @@ from config import DB_PATH
 con = duckdb.connect(str(DB_PATH))
 con.execute("INSTALL spatial; LOAD spatial;")
 
-for schema in ["raw", "rule_300m", "rule_30", "rule_3", "results", "preprocessing"]:
+for schema in ["raw", "rule_300m", "rule_30", "rule_3", "results", "preprocessing", "raw_2", "preprocessing_2", "rule_300m_2"]: #adding raw2 for testing results - comparison with different study - using bigger greenery ares
     con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema};")
 
 print("DB initialized:", DB_PATH)

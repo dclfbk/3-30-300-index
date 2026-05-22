@@ -1,5 +1,6 @@
-CITY = "trento"
+CITY = "venezia"
 
+#=================================================================
 import math
 import os
 from pathlib import Path
@@ -64,9 +65,15 @@ plt.rcParams.update({
     "savefig.dpi":        150,
 })
 
+paths = get_output_paths(CITY)
+
+buildings_routed = gpd.read_file(paths["gpkg"], layer="buildings")
+parks = gpd.read_file(paths["gpkg"], layer="parks")
+
 buildings_routed = gpd.read_file(paths["gpkg"], layer="buildings")
 parks  = gpd.read_file(paths["gpkg"], layer="parks")
 results = gpd.read_file(paths["gpkg"])
+
 con = connect_db()
 boundary_gdf = load_table(con, "raw", f"{CITY}_boundary")
 boundary_wgs84 = boundary_gdf.to_crs(CRS_WGS).geometry.union_all()

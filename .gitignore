@@ -21,8 +21,8 @@ ENV/
 
 # ── Data & generated files ────────────────────────────────────────────────────
 data/
-figures/
 fig/
+figures/
 results/
 logs/
 output/

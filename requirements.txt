@@ -7,3 +7,4 @@ shapely>=2.0
 requests>=2.31
 osmnx>=1.7
 tqdm>=4.66
+duckdb==1.5.1
