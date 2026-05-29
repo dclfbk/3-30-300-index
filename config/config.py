@@ -132,6 +132,7 @@ def load_table(con, schema, table, crs=CRS_METRIC):
     )
     return gdf
 
+
 def gpkg_to_duckdb(con: duckdb.DuckDBPyConnection,
                    path: str,
                    schema_table: str,

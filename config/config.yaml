@@ -2,6 +2,7 @@ ancona:
   query: "Ancona, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 10.42
   park_layers:
     osm: "data/ancona/parks_raw_osm.gpkg"
     bosco: "data/ancona/ancona_bosco.gpkg"
@@ -22,6 +23,7 @@ aosta:
   query: "Aosta, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 17.06
   park_layers:
     osm: "data/aosta/parks_raw_osm.gpkg"
     bosco: "data/aosta/aosta_bosco.gpkg"
@@ -42,6 +44,7 @@ bari:
   query: "Bari, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 5.11
   park_layers:
     municipal: "data/bari/300m/bari_municipality_parks.gpkg"
     osm: "data/bari/300m/parks_raw_osm.gpkg"
@@ -63,6 +66,7 @@ bologna:
   query: "Bologna, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "quartiere"
+  avg_tree_height_m: 11.44
   park_layers:
     pe_unis: "data/bologna/300m/parks_raw_pe_unis.gpkg"
     osm: "data/bologna/300m/parks_raw_osm.gpkg"
@@ -85,6 +89,7 @@ bolzano:
   by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 19.77
   park_layers:
     municipal: "data/bolzano/300m/bolzano_municipality_parks.gpkg"
     osm: "data/bolzano/300m/parks_raw_osm.gpkg"
@@ -106,6 +111,7 @@ cagliari:
   query: "Cagliari, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 5.21
   park_layers:
     osm: "data/cagliari/parks_raw_osm.gpkg"
     bosco: "data/cagliari/cagliari_bosco.gpkg"
@@ -126,6 +132,7 @@ campobasso:
   query: "Campobasso, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 11.34
   park_layers:
     osm: "data/campobasso/parks_raw_osm.gpkg"
     bosco: "data/campobasso/campobasso_bosco.gpkg"
@@ -146,6 +153,7 @@ catanzaro:
   query: "Catanzaro, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 11.83
   park_layers:
     osm: "data/catanzaro/parks_raw_osm.gpkg"
     bosco: "data/catanzaro/catanzaro_bosco.gpkg"
@@ -166,6 +174,7 @@ firenze:
   query: "Florence, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "quartiere"
+  avg_tree_height_m: 12.46
   park_layers:
     pe_unis: "data/firenze/300m/firenze_pe_unis.gpkg"
     osm: "data/firenze/300m/parks_raw_osm.gpkg"
@@ -187,6 +196,7 @@ genova:
   query: "Genoa, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 18.23
   park_layers:
     pe_unis: "data/genova/300m/genova_pe_uins.gpkg"
     area_verde: "data/genova/300m/genova_area_verde.gpkg"
@@ -209,6 +219,7 @@ milano:
   query: "Milan, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "NIL"
+  avg_tree_height_m: 11.5
   park_layers:
     municipal: "data/milano/300m/milano_municipality_parks.gpkg"
     osm: "data/milano/300m/milano_osm.gpkg"
@@ -230,6 +241,7 @@ napoli:
   query: "Naples, Italy"
   building_id_col: "ID"
   neighbourhood_col: null
+  avg_tree_height_m: 10.87
   park_layers:
     pe_unis: "data/napoli/300m/napoli_pe_unis.gpkg"
     osm: "data/napoli/300m/parks_raw_osm.gpkg"
@@ -251,6 +263,7 @@ palermo:
   query: "Palermo, Italy"
   building_id_col: "ID"
   neighbourhood_col: null
+  avg_tree_height_m: 9.37
   park_layers:
     pe_unis: "data/palermo/300m/palermo_pe_unis.gpkg"
     osm: "data/palermo/300m/parks_raw_osm.gpkg"
@@ -272,6 +285,7 @@ perugia:
   query: "Perugia, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 10.92
   park_layers:
     ar_vrd: "data/perugia/perugia_ar_vrd.gpkg"
     osm: "data/perugia/parks_raw_osm.gpkg"
@@ -293,6 +307,7 @@ potenza:
   query: "Potenza, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 12.03
   park_layers:
     ar_vrd: "data/potenza/potenta_ar_vrd.gpkg"
     osm: "data/potenza/parks_raw_osm.gpkg"
@@ -314,6 +329,7 @@ roma:
   query: "Rome, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "municipio"
+  avg_tree_height_m: 11.31
   park_layers:
     municipal: "data/roma/300m/parks_raw_municipal.gpkg"
     pe_unis: "data/roma/300m/parks_raw_pe_unis.gpkg"
@@ -336,6 +352,7 @@ torino:
   query: "Turin, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "circoscrizione"
+  avg_tree_height_m: 14.04
   park_layers:
     pe_unis: "data/torino/300m/parks_raw_pe_unis.gpkg"
     osm: "data/torino/300m/parks_raw_osm.gpkg"
@@ -358,6 +375,7 @@ trento:
   by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 19.03
   park_layers:
     municipal: "data/trento/300m/trento_municipality_parks.gpkg"
     osm: "data/trento/300m/parks_raw_osm.gpkg"
@@ -379,6 +397,7 @@ trieste:
   query: "Trieste, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 15.03
   park_layers:
     pe_unis: "data/trieste/trieste_pe_unis.gpkg"
     osm: "data/trieste/parks_raw_osm.gpkg"
@@ -400,6 +419,7 @@ venezia:
   query: "Venice, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 9.83
   park_layers:
     pe_unis: "data/venezia/venezia_pe_unis.gpkg"
     osm: "data/venezia/parks_raw_osm.gpkg"
@@ -422,6 +442,7 @@ verona:
   by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  avg_tree_height_m: 9.8
   park_layers:
     pe_unis: "data/verona/300m/verona_pe_unis.gpkg"
     municipal: "data/verona/300m/verona_municipality_parks.gpkg"
