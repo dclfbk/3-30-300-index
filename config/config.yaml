@@ -61,6 +61,8 @@ bari:
     canopy_raster: "data/bari/30/bari_ndvi.tif"
     orthophoto: "data/bari/3trees/bari_orthophoto.tif"
     tree_polygons: "data/bari/3trees/bari_tree_polygons.gpkg"
+    wms: "http://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2019/ImageServer/WMSServer"
+
 
 bologna:
   query: "Bologna, Italy"
@@ -106,6 +108,7 @@ bolzano:
     canopy_raster: "data/bolzano/30/bolzano_ndvi.tif"
     orthophoto: "data/bolzano/3trees/bolzano_orthophoto.tif"
     tree_polygons: "data/bolzano/3trees/bolzano_tree_polygons.gpkg"
+    wms: "https://geoservices.buergernetz.bz.it/mapproxy/ows?service=WMS&version=1.3.0&request=GetCapabilities"
 
 cagliari:
   query: "Cagliari, Italy"
@@ -191,6 +194,7 @@ firenze:
     canopy_raster: "data/firenze/30/firenze_ndvi.tif"
     orthophoto: "data/firenze/3trees/firenze_orthophoto.tif"
     tree_polygons: "data/firenze/3trees/firenze_tree_polygons.gpkg"
+    wms: "https://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc_rt&"
 
 genova:
   query: "Genoa, Italy"
@@ -214,6 +218,7 @@ genova:
     canopy_raster: "data/genova/30/genova_ndvi.tif"
     orthophoto: "data/genova/3trees/genova_orthophoto.tif"
     tree_polygons: "data/genova/3trees/genova_tree_polygons.gpkg"
+    wms: "https://geoservizi.regione.liguria.it/geoserver/M2555/ows?service=WMS&"
 
 milano:
   query: "Milan, Italy"
@@ -236,6 +241,7 @@ milano:
     canopy_raster: "data/milano/30/milano_ndvi.tif"
     orthophoto: "data/milano/3trees/milano_orthophoto.tif"
     tree_polygons: "data/milano/3trees/milano_tree_polygons.gpkg"
+    wms: "https://www.cartografia.servizirl.it/arcgis5/services/BaseMap/Ortofoto2021/ImageServer/WMSServer"
 
 napoli:
   query: "Naples, Italy"
@@ -302,6 +308,7 @@ perugia:
     canopy_raster: "data/perugia/perugia_ndvi.tif"
     orthophoto: "data/perugia/perugia_orthophoto.tif"
     tree_polygons: "data/perugia/perugia_tree_polygons.gpkg"
+    
 
 potenza:
   query: "Potenza, Italy"
@@ -369,6 +376,7 @@ torino:
     canopy_raster: "data/torino/30/torino_ndvi.tif"
     orthophoto: "data/torino/3trees/torino_orthophoto.tif"
     tree_polygons: "data/torino/3trees/torino_tree_polygons.gpkg"
+    wms: "https://geomap.reteunitaria.piemonte.it/WEBCAT/CAPABILITIES/wms_coto_ortofoto_2018.xml"
 
 trento:
   query: "R46663"
@@ -392,6 +400,7 @@ trento:
     canopy_raster: "data/trento/30/trento_ndvi.tif"
     orthophoto: "data/trento/3trees/trento_orthophoto.tif"
     tree_polygons: "data/trento/3trees/trento_tree_polygons.gpkg"
+    wms: "https://siat.provincia.tn.it/geoserver/stem/ecw-rgb-2015/wms?"
 
 trieste:
   query: "Trieste, Italy"
@@ -436,6 +445,7 @@ venezia:
     canopy_raster: "data/venezia/venezia_ndvi.tif"
     orthophoto: "data/venezia/venezia_orthophoto.tif"
     tree_polygons: "data/venezia/venezia_tree_polygons.gpkg"
+    wms: "https://idt2-geoserver.regione.veneto.it/geoserver/ows"
 
 verona:
   query: "R44107"
@@ -460,3 +470,4 @@ verona:
     canopy_raster: "data/verona/30/verona_ndvi.tif"
     orthophoto: "data/verona/3trees/verona_orthophoto.tif"
     tree_polygons: "data/verona/3trees/verona_tree_polygons.gpkg"
+    wms: "https://idt2-geoserver.regione.veneto.it/geoserver/ows"

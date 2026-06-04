@@ -1,137 +1,203 @@
-
-
-import os
+"""
+download_nir_tiles.py  —  WMS NIR tile downloader
+Usage:
+    python download_nir_tiles.py --city bologna
+    python download_nir_tiles.py --city bologna --gsd 0.20 --tile-px 2048 --overlap-px 64
+"""
+import argparse
 import io
 import math
+import os
+import sys
+
 import numpy as np
-from PIL import Image
 import rasterio
-from rasterio.transform import from_bounds
-from rasterio.crs import CRS
-from pyproj import Transformer
+from PIL import Image
 from owslib.wms import WebMapService
+from pyproj import Transformer
+from rasterio.crs import CRS
+from rasterio.transform import from_bounds
 from tqdm import tqdm
-from config.config import load_table, connect_db, get_city_cfg, get_output_paths
+
+from config.config import CITIES, connect_db, get_city_cfg, load_table, ROOT_DIR
+
 # ---------------------------------------------------------------------------
-# Config
+# CLI
 # ---------------------------------------------------------------------------
-WMS_URL     = "https://servizigis.regione.emilia-romagna.it/wms/comune_bo_2023_nir"
-TILE_DIR = "/Users/terezasaskova/Library/CloudStorage/GoogleDrive-tsaskova@fbk.eu/My Drive/3-30-300/data/Italy/Bologna/bologna_nir_tiles"
-CRS_CODE    = "EPSG:4326"
-SAVE_CRS    = "EPSG:32632"           # reproject to metric CRS when saving
+p = argparse.ArgumentParser()
+p.add_argument("--city",       required=True)
+p.add_argument("--gsd",        type=float, default=0.20,  help="Ground sampling distance in metres")
+p.add_argument("--tile-px",    type=int,   default=2048,  help="Tile size in pixels (square)")
+p.add_argument("--overlap-px", type=int,   default=64,    help="Overlap in pixels on each edge")
+p.add_argument("--save-crs",   default="EPSG:32632",      help="Output CRS (metric)")
+p.add_argument("--layer",       default=None,              help="WMS layer name (default: first available)")
+p.add_argument("--wms-version",default="1.3.0")
+p.add_argument("--fmt",        default="image/png",       help="WMS image format")
+args = p.parse_args()
 
-con = connect_db()
-CITY = "bologna"
+CITY = args.city
 
-# Full Bologna extent from boundingBoxWGS84
-boundary_gdf = load_table(con, "raw", f"{CITY}_boundary")
-xmin, ymin, xmax, ymax = boundary_gdf.to_crs("EPSG:4326").total_bounds
+# ---------------------------------------------------------------------------
+# Validate city has WMS
+# ---------------------------------------------------------------------------
+cfg = get_city_cfg(CITY)
+if "wms" not in cfg:
+    wms_cities = [c for c, v in CITIES.items() if v and "wms" in v]
+    sys.exit(f"No WMS configured for '{CITY}'. Cities with WMS: {', '.join(wms_cities)}")
 
-GSD_DEG     = 0.20 / 111320          # 20cm in degrees (approx at Bologna latitude)
-TILE_PX     = 2048
-OVERLAP_PX  = 64
-WMS_VERSION = "1.3.0"
-IMAGE_FMT   = "image/png"
-
+WMS_URL  = cfg["wms"]
+TILE_DIR = os.path.join(ROOT_DIR, "data", CITY, f"{CITY}_nir_tiles")
 os.makedirs(TILE_DIR, exist_ok=True)
 
-# Transformer WGS84 => UTM32N for saving metric tiles - this means the tile bounds will be slightly off from the original WGS84 bounds, but it's a necessary step to get accurate area measurements and simplify geometry later on.
-transformer = Transformer.from_crs("EPSG:4326", SAVE_CRS, always_xy=True)
+# ---------------------------------------------------------------------------
+# Derived constants
+# ---------------------------------------------------------------------------
+DEG_PER_M   = 1 / 111_320               # degrees per metre (approx, sufficient at IT latitudes)
+GSD_DEG     = args.gsd * DEG_PER_M
+TILE_DEG    = args.tile_px    * GSD_DEG
+OVERLAP_DEG = args.overlap_px * GSD_DEG
 
-# Connect + detect layer
-print(f"Connecting: {WMS_URL}")
-wms = WebMapService(WMS_URL, version=WMS_VERSION, timeout=120)
-LAYER = list(wms.contents.keys())[0]
-print(f"Using layer: {LAYER}\n")
+# ---------------------------------------------------------------------------
+# Extent from DB boundary
+# ---------------------------------------------------------------------------
+con = connect_db()
+xmin, ymin, xmax, ymax = (
+    load_table(con, "raw", f"{CITY}_boundary")
+    .to_crs("EPSG:4326")
+    .total_bounds
+)
+con.close()
 
-# Tile grid in degrees
-xmin, ymin, xmax, ymax = BBOX
-tile_deg    = TILE_PX * GSD_DEG
-overlap_deg = OVERLAP_PX * GSD_DEG
+# ---------------------------------------------------------------------------
+# WMS connection + layer/band inspection
+# ---------------------------------------------------------------------------
 
-cols = math.ceil((xmax - xmin) / tile_deg)
-rows = math.ceil((ymax - ymin) / tile_deg)
-print(f"Grid: {cols} cols × {rows} rows = {cols * rows} tiles\n")
+# Known band layouts keyed by substrings found in layer names/titles.
+# Order is (band_1, band_2, band_3) matching RGB channels of the PNG response.
+BAND_HINTS: dict[str, tuple[str, str, str]] = {
+    "nir":   ("NIR",   "Red",   "Green"),   # CIR composite
+    "cir":   ("NIR",   "Red",   "Green"),
+    "false": ("NIR",   "Red",   "Green"),   # "false colour"
+    "ir":    ("NIR",   "Red",   "Green"),
+    "rgb":   ("Red",   "Green", "Blue"),
+    "ortho": ("Red",   "Green", "Blue"),
+    "foto":  ("Red",   "Green", "Blue"),
+    "photo": ("Red",   "Green", "Blue"),
+    "true":  ("Red",   "Green", "Blue"),    # "true colour"
+}
+DEFAULT_BANDS = ("Red", "Green", "Blue")   # fallback if no hint matches
 
-# Download
+def detect_bands(layer_name: str, layer_title: str) -> tuple[str, str, str]:
+    combined = (layer_name + " " + (layer_title or "")).lower()
+    for keyword, bands in BAND_HINTS.items():
+        if keyword in combined:
+            return bands
+    return DEFAULT_BANDS
+
+print(f"[{CITY}] Connecting to WMS …")
+wms    = WebMapService(WMS_URL, version=args.wms_version, timeout=120)
+layers = list(wms.contents.keys())
+
+# Let the user override the layer via --layer; otherwise pick the first
+LAYER = args.layer if args.layer else layers[0]
+if LAYER not in wms.contents:
+    sys.exit(f"Layer '{LAYER}' not found. Available layers:\n  " + "\n  ".join(layers))
+
+layer_title = getattr(wms.contents[LAYER], "title", "")
+BANDS       = detect_bands(LAYER, layer_title)
+
+print(f"  Layer : {LAYER}  ('{layer_title}')")
+print(f"  Bands : 1={BANDS[0]}  2={BANDS[1]}  3={BANDS[2]}"
+      + ("  ← NIR detected" if BANDS[0] == "NIR" else "  ← RGB (no NIR)"))
+print(f"  All layers available: {layers}")
+print(f"  Extent: ({xmin:.4f}, {ymin:.4f}) → ({xmax:.4f}, {ymax:.4f})")
+
+# ---------------------------------------------------------------------------
+# Tile grid
+# ---------------------------------------------------------------------------
+cols = math.ceil((xmax - xmin) / TILE_DEG)
+rows = math.ceil((ymax - ymin) / TILE_DEG)
+print(f"  Grid  : {cols} cols × {rows} rows = {cols * rows} tiles\n")
+
+transformer = Transformer.from_crs("EPSG:4326", args.save_crs, always_xy=True)
+
+# ---------------------------------------------------------------------------
+# Download loop
+# ---------------------------------------------------------------------------
 failed = []
 
 for row in tqdm(range(rows), desc="Rows"):
     for col in range(cols):
 
-        # True tile bounds (no overlap) in WGS84
-        tx_min = xmin + col * tile_deg
-        ty_min = ymin + row * tile_deg
-        tx_max = min(tx_min + tile_deg, xmax)
-        ty_max = min(ty_min + tile_deg, ymax)
-
-        # Expanded bounds with overlap (clamped to BBOX)
-        ex_min = max(tx_min - overlap_deg, xmin)
-        ey_min = max(ty_min - overlap_deg, ymin)
-        ex_max = min(tx_max + overlap_deg, xmax)
-        ey_max = min(ty_max + overlap_deg, ymax)
-
-        px_w = max(1, round((ex_max - ex_min) / GSD_DEG))
-        px_h = max(1, round((ey_max - ey_min) / GSD_DEG))
-
         tile_path = os.path.join(TILE_DIR, f"tile_{row:04d}_{col:04d}.tif")
         if os.path.exists(tile_path):
             continue
 
+        # Core tile bounds (WGS84)
+        tx0 = xmin + col * TILE_DEG
+        ty0 = ymin + row * TILE_DEG
+        tx1 = min(tx0 + TILE_DEG, xmax)
+        ty1 = min(ty0 + TILE_DEG, ymax)
+
+        # Expanded bounds with overlap, clamped to study area
+        ex0 = max(tx0 - OVERLAP_DEG, xmin)
+        ey0 = max(ty0 - OVERLAP_DEG, ymin)
+        ex1 = min(tx1 + OVERLAP_DEG, xmax)
+        ey1 = min(ty1 + OVERLAP_DEG, ymax)
+
+        px_w = max(1, round((ex1 - ex0) / GSD_DEG))
+        px_h = max(1, round((ey1 - ey0) / GSD_DEG))
+
         try:
             resp = wms.getmap(
                 layers=[LAYER],
-                srs=CRS_CODE,
-                bbox=(ex_min, ey_min, ex_max, ey_max),
+                srs="EPSG:4326",
+                bbox=(ex0, ey0, ex1, ey1),
                 size=(px_w, px_h),
-                format=IMAGE_FMT,
+                format=args.fmt,
                 transparent=False,
             )
             arr = np.array(Image.open(io.BytesIO(resp.read())).convert("RGB"))
 
-            # Convert bounds to metric for saving
-            mx_min, my_min = transformer.transform(ex_min, ey_min)
-            mx_max, my_max = transformer.transform(ex_max, ey_max)
-            # True tile bounds in metric
-            tmx_min, tmy_min = transformer.transform(tx_min, ty_min)
-            tmx_max, tmy_max = transformer.transform(tx_max, ty_max)
+            # Metric bounds for GeoTIFF transform
+            mx0, my0 = transformer.transform(ex0, ey0)
+            mx1, my1 = transformer.transform(ex1, ey1)
 
-            transform = from_bounds(mx_min, my_min, mx_max, my_max, px_w, px_h)
+            # True (non-overlapping) tile bounds in metric, stored as tags
+            tmx0, tmy0 = transformer.transform(tx0, ty0)
+            tmx1, tmy1 = transformer.transform(tx1, ty1)
 
             with rasterio.open(
                 tile_path, "w",
                 driver="GTiff",
-                height=px_h,
-                width=px_w,
+                height=px_h, width=px_w,
                 count=3,
                 dtype=arr.dtype,
-                crs=CRS.from_string(SAVE_CRS),
-                transform=transform,
+                crs=CRS.from_string(args.save_crs),
+                transform=from_bounds(mx0, my0, mx1, my1, px_w, px_h),
                 compress="lzw",
                 tiled=True,
-                blockxsize=256,
-                blockysize=256,
+                blockxsize=256, blockysize=256,
             ) as dst:
-                dst.write(arr[:, :, 0], 1)  # NIR
-                dst.write(arr[:, :, 1], 2)  # Red
-                dst.write(arr[:, :, 2], 3)  # Green
+                dst.write(arr[:, :, 0], 1)
+                dst.write(arr[:, :, 1], 2)
+                dst.write(arr[:, :, 2], 3)
                 dst.update_tags(
-                    true_xmin=tmx_min, true_ymin=tmy_min,
-                    true_xmax=tmx_max, true_ymax=tmy_max,
-                    overlap_px=OVERLAP_PX,
-                    band_1="NIR", band_2="Red", band_3="Green",
+                    band_1=BANDS[0], band_2=BANDS[1], band_3=BANDS[2],
+                    overlap_px=args.overlap_px,
+                    true_xmin=tmx0, true_ymin=tmy0,
+                    true_xmax=tmx1, true_ymax=tmy1,
                 )
 
         except Exception as e:
-            print(f"\n  FAILED tile ({row},{col}): {e}")
+            tqdm.write(f"  FAILED ({row},{col}): {e}")
             failed.append((row, col))
 
-total   = rows * cols
-success = total - len(failed)
-print(f"\nDone: {success}/{total} tiles => {TILE_DIR}/")
-
+# ---------------------------------------------------------------------------
+# Summary
+# ---------------------------------------------------------------------------
+total = rows * cols
+print(f"\nDone: {total - len(failed)}/{total} tiles → {TILE_DIR}")
 if failed:
-    print(f"Failed: {failed} = re-run to retry")
-
-print(f"\nBand order: 1=NIR  2=Red  3=Green")
-print(f"Saved CRS: {SAVE_CRS}")
+    print(f"Failed ({len(failed)} tiles — re-run to retry): {failed}")
+print(f"Bands: 1={BANDS[0]}  2={BANDS[1]}  3={BANDS[2]}  |  CRS: {args.save_crs}")
