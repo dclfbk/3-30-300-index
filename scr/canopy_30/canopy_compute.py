@@ -1,8 +1,15 @@
 from __future__ import annotations
 
-#=====================================================================
-CITY = "bologna"
-#=====================================================================
+import argparse
+_parser = argparse.ArgumentParser()
+_parser.add_argument("--city", default="bologna")
+_args = _parser.parse_args()
+CITY = _args.city
+
+import warnings; warnings.filterwarnings("ignore")
+import os, sys, time, multiprocessing
+from concurrent.futures import ProcessPoolExecutor, as_completed, TimeoutError as FuturesTimeout
+from pathlib import Path
 
 RES_HEX = 8          # H3 resolution 8 ≈ 0.6 km² hexagons — according to 3-30-300 handbook guidance
 CANOPY_THRESHOLD = 30.0  # 30% canopy cover 
@@ -17,7 +24,7 @@ from pathlib import Path
 from shapely.geometry import Polygon
 from shapely.validation import make_valid
 
-project_root = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index")
+project_root = Path("/workspace/3-30-300-index")
 sys.path.insert(0, str(project_root))
 os.chdir(project_root)
 
@@ -88,7 +95,7 @@ def compute_canopy_compliance(tiles: gpd.GeoDataFrame, con) -> gpd.GeoDataFrame:
       canopy_pct       — canopy_m2 / ground_area * 100
       compliant        — True if canopy_pct >= CANOPY_THRESHOLD (30%)
     """
-    canopy = load_table(con, "preprocessing", f"canopy_{CITY}", crs=CRS_WGS).to_crs(CRS_METRIC)
+    canopy = load_table(con, "preprocessing", f"canopy_{CITY}").to_crs(CRS_METRIC)
     canopy["geometry"] = canopy.geometry.apply(make_valid)
     canopy = canopy[canopy.geometry.is_valid & ~canopy.geometry.is_empty].reset_index(drop=True)
 

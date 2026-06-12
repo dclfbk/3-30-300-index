@@ -6,7 +6,7 @@ import yaml
 import sys
 from pathlib import Path
 
-project_root = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index")
+project_root = Path("/workspace/3-30-300-index/")
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
@@ -15,7 +15,7 @@ ROOT_DIR  = ROOT_PATH
 DATA_DIR  = ROOT_DIR / "data"
 LOGS_DIR  = ROOT_DIR / "logs"
 
-DB_PATH = "/Users/terezasaskova/3_30_300_master.duckdb"
+DB_PATH = "/workspace/3-30-300-index/data/3_30_300_master.duckdb"
 CRS_WGS  = "EPSG:4326"
 CRS_METRIC   = "EPSG:32632"
 
@@ -71,22 +71,23 @@ def get_produced_paths(city_key: str) -> dict:
         "parks_gardens": str(base / "300m"   / f"{city_key}_greenery.gpkg"),
     }
 
-def connect_db() -> duckdb.DuckDBPyConnection:
+def connect_db(read_only: bool = False) -> duckdb.DuckDBPyConnection:
     """
     Open the shared DuckDB file, load the spatial extension,
     and ensure all project schemas exist.
     Use this instead of bare duckdb.connect() in every notebook.
     """
-    con = duckdb.connect(str(DB_PATH))
+    con = duckdb.connect(str(DB_PATH), read_only=read_only)
     con.execute("LOAD spatial;")
-    for schema in ["raw", "preprocessing", "processing", "rule_300m", "raw_2", "preprocessing_2", "rule_300m_2"]:
-        con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+    if not read_only:
+        for schema in ["raw", "preprocessing", "processing", "rule_300m", "raw_2", "preprocessing_2", "rule_300m_2"]:
+            con.execute(f"CREATE SCHEMA IF NOT EXISTS {schema}")
     return con
 
 
 def gdf_to_duckdb(con, gdf: gpd.GeoDataFrame, full_table: str):
     schema, table = full_table.split(".", 1)
-    df = gdf.copy()
+    df = pd.DataFrame(gdf.copy())
     df["geometry"] = gdf.geometry.to_wkb().apply(
         lambda x: bytes(x) if x is not None else None
     )
