@@ -35,13 +35,14 @@ CITY_WMS = {
         "notes": "Puglia 2019 RGB orthophoto",
     },
     "bologna": {
-        "url": "https://servizigis.regione.emilia-romagna.it/wms/ortofoto_bologna2023_nir",
-        "layer": None,
+        "url": "https://servizigis.regione.emilia-romagna.it/wms/agea2023_rgb",
+        "layer": "Agea2023_RGB",
         "wms_version": "1.3.0",
-        "nir": True,
+        "nir": False,
         "year": 2023,
         "max_px": 4096,
-        "notes": "Bologna 2023 NIR 20cm — Comune di Bologna via Regione E-R",
+        "fmt": "image/tiff",
+        "notes": "AGEA 2023 RGB — full Emilia-Romagna coverage, replaces rer2023_24_rgb which had gaps",
     },
     "bolzano": {
         "url": "https://geoservices.buergernetz.bz.it/mapproxy/ows",
@@ -77,8 +78,12 @@ CITY_WMS = {
     },
     "roma": {
         "url": "https://geoportale.comune.roma.it/geoserver/ows",
-        "layer": None, "wms_version": "1.3.0", "nir": False, "year": None, "max_px": 4096,
-        "notes": "Roma 2024 RGB — verify layer with --list-layers",
+        "layer": "REGLAZ:2020_AGEA_25833_COG",
+        "wms_version": "1.3.0",
+        "nir": False,
+        "year": 2020,
+        "max_px": 4096,
+        "notes": "Roma/Lazio AGEA 2020 RGB orthophoto via Comune di Roma GeoServer",
     },
     "torino": {
         "url": "https://geomap.reteunitaria.piemonte.it/mapproxy/service",
@@ -128,6 +133,38 @@ CITY_WMS = {
         "fmt": "image/tiff",  # required to keep 3 bands (NIR survives)
         "notes": "Toscana 2023 CIR (NIR/R/G) — Regione Toscana Geoscopio OFC",
     },
+    "firenze_rgb": {
+        "base_city": "firenze",   # <-- add this
+        "url": "https://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc_rt",
+        "layer": "rt_ofc.5k23.32bit",   # true 8-bit RGB (not the .nir greyscale-only layer)
+        "wms_version": "1.1.1",
+        "nir": False,
+        "year": 2023,
+        "max_px": 4096,
+        "fmt": "image/tiff",
+        "notes": "Toscana 2023 RGB 20cm — same endpoint as CIR, different layer (32bit colore)",
+    },
+    "torino_rgb": {
+        "base_city": "torino",   # <-- add this
+        "url": "https://geomap.reteunitaria.piemonte.it/mapproxy/service",
+        "layer": "coto_ortofoto_2023",  # RGB twin of coto_ortofoto_ir_2023
+        "wms_version": "1.3.0",
+        "nir": False,
+        "year": 2023,
+        "max_px": 1024,
+        "fmt": "image/png",
+        "notes": "Torino 2023 RGB — CSI Piemonte, same server as NIR variant",
+    },
+    "bolzano_rgb": {
+        "base_city": "bolzano",   
+        "url": "https://geoservices.buergernetz.bz.it/mapproxy/ows",
+        "layer": "p_bz-Orthoimagery:Aerial-2023-RGB",
+        "wms_version": "1.3.0",
+        "nir": False,
+        "year": 2023,
+        "max_px": 2000,
+        "notes": "Bolzano 2023 RGB 20cm — buergernetz, RGB twin of CIR layer",
+    },
 }
 
 NO_WMS = ["ancona", "cagliari", "campobasso", "catanzaro",
@@ -161,7 +198,9 @@ def get_boundary_bounds(city, boundary_path):
         return gpd.read_file(boundary_path).to_crs("EPSG:4326").total_bounds
     from config.config import connect_db, load_table
     con = connect_db(read_only=True)
-    bounds = load_table(con, "raw", f"{city}_boundary").to_crs("EPSG:4326").total_bounds
+    cfg = CITY_WMS.get(city, {})
+    lookup_city = cfg.get("base_city", city)   # <-- fall back to city if no base_city
+    bounds = load_table(con, "raw", f"{lookup_city}_boundary").to_crs("EPSG:4326").total_bounds
     con.close()
     return bounds
 
