@@ -47,3 +47,5 @@ notes.txt
 training/
 scr/300m_computation.py
 scr/parks.py
+
+*.log

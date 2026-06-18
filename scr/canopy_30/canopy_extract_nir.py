@@ -2,7 +2,7 @@ import argparse
 _parser = argparse.ArgumentParser()
 _parser.add_argument("--city", default="bologna")
 _args = _parser.parse_args()
-CITY = _args.city
+CITY = _args.city.lower()
 
 import warnings; warnings.filterwarnings("ignore")
 import os, sys, time, multiprocessing
@@ -17,7 +17,6 @@ from rasterio.features import shapes
 from shapely.geometry import shape, box
 from shapely.ops import unary_union
 from shapely.validation import make_valid
-from skimage.filters import threshold_otsu
 import duckdb
 import osmnx as ox
 from tqdm import tqdm
@@ -36,14 +35,12 @@ cfg   = get_city_cfg(CITY)
 paths = get_output_paths(CITY)
 CRS   = CRS_METRIC
 
-# Base thresholds at 20cm GSD — scaled dynamically per tile
-BASE_GSD_M        = 0.20
-NDVI_THRESH       = 0.3    # fallback only; Otsu used when possible
-EXG_THRESH        = 0.05
-BASE_AREA_M2      = 0.05
-SIMPLIFY_M        = 0.5
+# Precise NIR parameters
+NDVI_THRESH           = 0.3
+MIN_AREA_M2           = 1.5  # Filter out tiny pixel-level noise artifacts
+SIMPLIFY_M            = 0.25 # Lowered to keep high geometric precision for tree lines
 OSM_NEGATIVE_BUFFER_M = 2.0
-TILE_TIMEOUT_S    = 120
+TILE_TIMEOUT_S        = 120
 
 TILE_DIR           = f"/workspace/3-30-300-index/data/{CITY}_nir_tiles_local"
 DB_TABLE           = f"preprocessing.canopy_{CITY}"
@@ -64,93 +61,28 @@ OSM_EXCLUDE_TAGS = {
 CITY_BOUNDARY = None
 
 
-# ── Band detection ────────────────────────────────────────────────────────────
-def detect_and_normalize_bands(data: np.ndarray, tags: dict) -> tuple[np.ndarray, np.ndarray, bool]:
-    """
-    Infer band layout from data shape and rasterio tags.
-    Returns (nir, red, nir_available).
-    data shape: (bands, H, W), float32.
-
-    Supported layouts:
-      - 3-band NIR-first: [NIR, R, G]       (Bologna, Bolzano, Torino CIR)
-      - 4-band NIR-last:  [R, G, B, NIR]    (Firenze rt_ofc layer)
-      - 3-band RGB:       [R, G, B]          (fallback ExG path)
-    """
-    n_bands = data.shape[0]
-    nir_tag = tags.get("nir", "False") == "True"
-
-    if not nir_tag or n_bands < 3:
-        return data[0], data[1], False
-
-    if n_bands == 4:
-        # Heuristic: NIR is typically much brighter than blue in natural scenes.
-        # If band3 mean >> band0 mean, band order is R/G/B/NIR (Firenze).
-        b0_mean = float(np.mean(data[0]))
-        b3_mean = float(np.mean(data[3]))
-        if b3_mean > b0_mean * 1.2:
-            # R, G, B, NIR
-            return data[3], data[0], True
-        else:
-            # NIR, R, G, B  (unusual but guard it)
-            return data[0], data[1], True
-
-    # 3-band with nir=True → NIR, R, G
-    return data[0], data[1], True
-
-
 # ── Vegetation indices ────────────────────────────────────────────────────────
-def adaptive_ndvi_thresh(nir: np.ndarray, red: np.ndarray, fallback: float = NDVI_THRESH) -> float:
-    """
-    Otsu binarisation on the per-tile NDVI histogram.
-    Falls back to fixed threshold when the histogram is flat (no vegetation).
-    """
-    denom = nir + red
-    with np.errstate(invalid="ignore", divide="ignore"):
-        ndvi = np.where(denom > 0, (nir - red) / denom, 0.0)
-    valid = ndvi[np.isfinite(ndvi)].ravel()
-    if valid.std() < 0.01:
-        return fallback
-    try:
-        thresh = float(threshold_otsu(valid))
-        return float(np.clip(thresh, 0.1, 0.6))
-    except Exception:
-        return fallback
-
-
-def ndvi_mask(nir: np.ndarray, red: np.ndarray) -> np.ndarray:
-    thresh = adaptive_ndvi_thresh(nir, red)
+def ndvi_mask(nir: np.ndarray, red: np.ndarray, thresh: float) -> np.ndarray:
     denom = nir + red
     with np.errstate(invalid="ignore", divide="ignore"):
         ndvi = np.where(denom > 0, (nir - red) / denom, 0.0)
     return (ndvi > thresh).astype(np.uint8)
 
-
-def exg_mask(r: np.ndarray, g: np.ndarray, b: np.ndarray) -> np.ndarray:
-    total = r + g + b
-    with np.errstate(invalid="ignore", divide="ignore"):
-        r_n = np.where(total > 0, r / total, 0.0)
-        g_n = np.where(total > 0, g / total, 0.0)
-        b_n = np.where(total > 0, b / total, 0.0)
-    exg = 2 * g_n - r_n - b_n
-    return (exg > EXG_THRESH).astype(np.uint8)
-
-
-def get_veg_mask(data: np.ndarray, tags: dict, gsd_m: float) -> tuple[np.ndarray, float]:
-    """
-    Returns (uint8 mask, effective_min_area_m2).
-    Area threshold scales quadratically with GSD relative to 20cm baseline.
-    """
-    min_area = BASE_AREA_M2 * (gsd_m / BASE_GSD_M) ** 2
-
-    nir, red, nir_available = detect_and_normalize_bands(data, tags)
-
-    if nir_available:
-        mask = ndvi_mask(nir, red)
-    else:
-        r, g, b = data[0], data[1], data[2]
-        mask = exg_mask(r, g, b)
-
-    return mask, min_area
+def extract_nir_red(data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Dynamically locates Red and NIR bands based on structure and intensity profile."""
+    n_bands = data.shape[0]
+    
+    if n_bands >= 4:
+        # Standard RGB-NIR vs NRGB balance check (NIR is highly reflective)
+        if np.mean(data[3]) > np.mean(data[0]) * 1.2:
+            return data[3], data[0]  # Band 4 = NIR, Band 1 = Red
+        return data[0], data[1]      # Band 1 = NIR, Band 2 = Red
+        
+    if n_bands == 3:
+        # CIR False-color stack
+        return data[0], data[1]      # Band 1 = NIR, Band 2 = Red
+        
+    return data[0], data[0]          # Safe fallback fallback
 
 
 # ── OSM exclusion ─────────────────────────────────────────────────────────────
@@ -170,7 +102,6 @@ def build_osm_exclusion(city: str) -> gpd.GeoDataFrame | None:
                 pass
     if not gdfs:
         return None
-    
     exclusion = gpd.GeoDataFrame(pd.concat(gdfs, ignore_index=True), crs=CRS_WGS).to_crs(CRS_METRIC)
     exclusion["geometry"] = exclusion.geometry.buffer(-OSM_NEGATIVE_BUFFER_M)
     exclusion = exclusion[~exclusion.geometry.is_empty].copy()
@@ -189,12 +120,10 @@ def process_tile(tile_path: str) -> str | None:
 
     try:
         with rasterio.open(tile_path) as src:
-            tags = src.tags()
-            n_bands = min(src.count, 4)  # allow up to 4 bands (NIR-last sources)
+            n_bands = src.count
             data = src.read(list(range(1, n_bands + 1)), out_dtype=np.float32)
             transform = src.transform
             crs = src.crs
-            gsd_m = abs(transform.a)  # pixel width in CRS units (metres for metric CRS)
 
             if CITY_BOUNDARY is not None:
                 tile_box = box(*src.bounds)
@@ -204,20 +133,21 @@ def process_tile(tile_path: str) -> str | None:
     except Exception as e:
         raise RuntimeError(f"rasterio open failed: {e}")
 
-    mask, min_area = get_veg_mask(data, tags, gsd_m)
+    nir, red = extract_nir_red(data)
+    mask = ndvi_mask(nir, red, NDVI_THRESH)
+    
     if not mask.any():
         return None
 
-    results = (
+    # Vectorize structural raster chunks into Shapely structures
+    feats = [
         {"geometry": shape(s), "properties": {"DN": int(v)}}
         for s, v in shapes(mask, mask=(mask == 1), transform=transform)
-    )
-    gdf = gpd.GeoDataFrame.from_features(list(results), crs=crs).to_crs(CRS_METRIC)
+    ]
+    
+    gdf = gpd.GeoDataFrame.from_features(feats, crs=crs).to_crs(CRS_METRIC)
     if gdf.empty:
         return None
-
-    # Dynamic area filter (replaces hardcoded MIN_AREA_M2)
-    gdf = gdf[gdf.geometry.area >= min_area].copy()
 
     if CITY_BOUNDARY is not None:
         gdf = gdf[gdf.geometry.intersects(CITY_BOUNDARY)].copy()
@@ -233,6 +163,7 @@ def process_tile(tile_path: str) -> str | None:
 def duckdb_postprocess(vector_paths, exclusion_gdf):
     process_con = duckdb.connect()
     process_con.execute("INSTALL spatial; LOAD spatial;")
+    process_con.execute("SET max_memory='8GB';")
 
     valid_paths = [
         str(Path(p).resolve())
@@ -242,7 +173,7 @@ def duckdb_postprocess(vector_paths, exclusion_gdf):
 
     print(f"DuckDB: Loading {len(valid_paths):,} shards ...")
     union_sql = " UNION ALL ".join(
-        f"SELECT geom FROM ST_Read('{p}') WHERE ST_Area(geom) >= {BASE_AREA_M2}"
+        f"SELECT geom FROM ST_Read('{p}') WHERE ST_Area(geom) >= {MIN_AREA_M2}"
         for p in valid_paths
     )
     process_con.execute(f"CREATE OR REPLACE TABLE canopy_raw AS {union_sql}")
@@ -254,32 +185,42 @@ def duckdb_postprocess(vector_paths, exclusion_gdf):
         CREATE OR REPLACE TABLE canopy_final AS
         SELECT ST_SimplifyPreserveTopology(geom, {SIMPLIFY_M}) AS geom
         FROM canopy_raw
-        WHERE ST_Area(geom) >= {BASE_AREA_M2}
+        WHERE ST_Area(geom) >= {MIN_AREA_M2}
     """)
     n_final = process_con.execute("SELECT COUNT(*) FROM canopy_final").fetchone()[0]
     print(f"  {n_final:,} polygons after simplify")
 
-    if exclusion_gdf is not None:
-        print("Applying OSM exclusion via DuckDB ...")
-        # Union in Shapely first — much cheaper than DuckDB ST_Union_Agg
-        excl_union = unary_union(exclusion_gdf.geometry.values)
-        excl_union_gdf = gpd.GeoDataFrame({"geometry": [excl_union]}, crs=CRS_METRIC)
-        excl_path = str(SCRATCH_DIR / "osm_exclusion_unioned.gpkg")
-        excl_union_gdf.to_file(excl_path, driver="GPKG")
-
-        process_con.execute(f"""
-            CREATE OR REPLACE TABLE excl AS 
-            SELECT geom FROM ST_Read('{excl_path}')
+    if exclusion_gdf is not None and not exclusion_gdf.empty:
+        print("Applying OSM exclusion via targeted DuckDB index join ...")
+        excl_path = str(SCRATCH_DIR / "osm_exclusion_tmp.gpkg")
+        exclusion_gdf[["geometry"]].to_file(excl_path, driver="GPKG")
+        
+        process_con.execute(f"CREATE OR REPLACE TABLE excl AS SELECT geom FROM ST_Read('{excl_path}')")
+        
+        # High performance group intersection logic to handle clean clipping boundaries
+        process_con.execute("""
+            CREATE OR REPLACE TABLE canopy_intersected AS
+            SELECT 
+                c.rowid as c_id,
+                ST_Difference(ST_MakeValid(c.geom), ST_CollectionExtract(ST_Union_Agg(ST_MakeValid(e.geom)), 3)) AS geom
+            FROM canopy_final c
+            JOIN excl e ON ST_Intersects(c.geom, e.geom)
+            GROUP BY c.rowid, c.geom
         """)
+        
         process_con.execute("""
             CREATE OR REPLACE TABLE canopy_final AS
-            SELECT ST_Difference(ST_MakeValid(c.geom), ST_MakeValid(e.geom)) AS geom
-            FROM canopy_final c, excl e
-            WHERE NOT ST_IsEmpty(ST_Difference(ST_MakeValid(c.geom), ST_MakeValid(e.geom)))
+            SELECT geom FROM canopy_intersected WHERE NOT ST_IsEmpty(geom) AND ST_Area(geom) >= {MIN_AREA_M2}
+            UNION ALL
+            SELECT geom FROM canopy_final 
+            WHERE rowid NOT IN (SELECT c_id FROM canopy_intersected)
         """)
+        n_excl = process_con.execute("SELECT COUNT(*) FROM canopy_final").fetchone()[0]
+        print(f"  {n_excl:,} polygons after OSM exclusion")
 
     result = process_con.execute("SELECT ST_AsWKB(geom) AS geom FROM canopy_final").fetchdf()
     process_con.close()
+    
     from shapely import wkb
     result["geometry"] = result["geom"].apply(lambda b: wkb.loads(bytes(b)))
     gdf = gpd.GeoDataFrame(result.drop(columns=["geom"]), geometry="geometry", crs=CRS_METRIC)
@@ -291,7 +232,6 @@ if __name__ == "__main__":
     multiprocessing.set_start_method("fork", force=True)
     n_workers = max(1, os.cpu_count() // 2 - 1)
 
-    # ── Load boundary ─────────────────────────────────────────────────────────
     boundary_gpkg = Path(f"/workspace/3-30-300-index/data/{CITY}_boundary.gpkg")
     if boundary_gpkg.exists():
         boundary_gdf = gpd.read_file(str(boundary_gpkg))
@@ -305,14 +245,11 @@ if __name__ == "__main__":
     print(f"City boundary loaded: {CITY_BOUNDARY.geom_type}")
 
     tile_paths = [p for p in sorted(Path(TILE_DIR).glob("tile_*.tif")) if p.stat().st_size > 10_000]
+    if not tile_paths:
+        print(f"No source imagery tiles located in path target: {TILE_DIR}")
+        sys.exit(1)
+        
     print(f"City: {CITY}  |  Source tiles: {len(tile_paths):,}")
-
-    # Detect NIR and GSD from first tile
-    with rasterio.open(str(tile_paths[0])) as src:
-        nir_flag = src.tags().get("nir", "False") == "True"
-        first_gsd = abs(src.transform.a)
-    print(f"Vegetation index: {'NDVI (NIR)' if nir_flag else 'ExG (RGB)'}")
-    print(f"GSD (first tile): {first_gsd:.3f}m")
 
     exclusion_gdf = build_osm_exclusion(CITY)
     print(f"OSM exclusion: {'ready' if exclusion_gdf is not None else 'none'}")
@@ -325,14 +262,12 @@ if __name__ == "__main__":
     else:
         print(f"Resuming from {len(existing_shards):,} existing shards …" if existing_shards else "Starting raster stage …")
         t_infer = time.time()
-        vector_paths = []
+        
         with ProcessPoolExecutor(max_workers=n_workers) as exe:
             futures = {exe.submit(process_tile, str(p)): p for p in tile_paths}
             for f in tqdm(as_completed(futures), total=len(futures), desc=f"Vectorizing {CITY}"):
                 try:
-                    r = f.result(timeout=TILE_TIMEOUT_S)
-                    if r:
-                        vector_paths.append(r)
+                    f.result(timeout=TILE_TIMEOUT_S)
                 except FuturesTimeout:
                     tile_p = futures[f]
                     tqdm.write(f"[timeout] {tile_p.name}")

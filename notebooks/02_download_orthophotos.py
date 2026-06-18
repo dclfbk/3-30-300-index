@@ -3,10 +3,6 @@ download_orthophotos.py  —  Batch WMS orthophoto tile downloader (patched)
 Usage:
     python download_orthophotos.py --city firenze
     python download_orthophotos.py --city firenze --retry-failed
-
-Patches vs original:
-  - Added "firenze" entry using rt_ofc.5k25.32bit.nir (CIR: NIR/R/G), image/tiff
-  - Added blank/uniform-response validation (arr.std() < 1.0 -> treated as failure, retried)
 """
 import argparse
 import io
@@ -22,27 +18,24 @@ from owslib.wms import WebMapService
 from pyproj import Transformer
 from rasterio.crs import CRS
 from rasterio.transform import from_bounds
+from shapely.geometry import box
+from shapely.ops import unary_union
 from tqdm import tqdm
 
+ROOT_PATH = "/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index/"
+sys.path.insert(0, ROOT_PATH)
+os.chdir(ROOT_PATH)
+
 CITY_WMS = {
-    "bari": {
-        "url": "http://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2019/ImageServer/WMSServer",
-        "layer": "0",
-        "wms_version": "1.1.1",
-        "nir": False,
-        "year": 2019,
-        "max_px": 4096,
-        "notes": "Puglia 2019 RGB orthophoto",
-    },
     "bologna": {
-        "url": "https://servizigis.regione.emilia-romagna.it/wms/agea2023_rgb",
-        "layer": "Agea2023_RGB",
+        "url": "https://servizigis.regione.emilia-romagna.it/wms/rer2023_24_nir",
+        "layer": "RER2023_24_NIR",
         "wms_version": "1.3.0",
-        "nir": False,
+        "nir": True,
         "year": 2023,
         "max_px": 4096,
         "fmt": "image/tiff",
-        "notes": "AGEA 2023 RGB — full Emilia-Romagna coverage, replaces rer2023_24_rgb which had gaps",
+        "notes": "AGEA 2023 NIR — full Emilia-Romagna coverage, replaces rer2023_24_rgb which had gaps",
     },
     "bolzano": {
         "url": "https://geoservices.buergernetz.bz.it/mapproxy/ows",
@@ -55,10 +48,10 @@ CITY_WMS = {
     },
     "genova": {
         "url": "https://geoservizi.regione.liguria.it/geoserver/M2555/ows",
-        "layer": None,
+        "layer": "L10401",
         "wms_version": "1.3.0",
         "nir": False,
-        "year": None,
+        "year": 2022,
         "max_px": 4096,
         "notes": "Liguria GeoServer — verify layer with --list-layers",
     },
@@ -97,7 +90,7 @@ CITY_WMS = {
     },
     "trento": {
         "url": "https://siat.provincia.tn.it/geoserver/stem/ecw-rgb-2015/wms",
-        "layer": None,
+        "layer": "ecw-rgb-2015",
         "wms_version": "1.1.1",
         "nir": False,
         "year": 2015,
@@ -106,7 +99,7 @@ CITY_WMS = {
     },
     "venezia": {
         "url": "https://idt2-geoserver.regione.veneto.it/geoserver/ows",
-        "layer": None,
+        "layer": "rv:ortofoto_agea_2024",
         "wms_version": "1.3.0",
         "nir": False,
         "year": 2024,
@@ -115,28 +108,36 @@ CITY_WMS = {
     },
     "verona": {
         "url": "https://idt2-geoserver.regione.veneto.it/geoserver/ows",
-        "layer": None,
+        "layer": "rv:ortofoto_agea_2024",
         "wms_version": "1.3.0",
         "nir": False,
         "year": 2024,
         "max_px": 4096,
         "notes": "Veneto 2024 RGB — verify layer with --list-layers",
     },
-    # ---- NEW ----
+    "bologna_rgb": {
+        "url": "https://servizigis.regione.emilia-romagna.it/wms/rer2023_24_rgb",
+        "layer": "RER2023_24_RGB",
+        "wms_version": "1.3.0",
+        "nir": False,
+        "year": 2023,
+        "max_px": 4096,
+        "notes": "AGEA 2023 RGB — full Emilia-Romagna coverage",
+    },
     "firenze": {
         "url": "https://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc_rt",
-        "layer": "rt_ofc.5k25.32bit.nir",  # CIR: band1=NIR, band2=R, band3=G
+        "layer": "rt_ofc.5k25.32bit.nir",
         "wms_version": "1.1.1",
         "nir": True,
         "year": 2023,
         "max_px": 4096,
-        "fmt": "image/tiff",  # required to keep 3 bands (NIR survives)
+        "fmt": "image/tiff",
         "notes": "Toscana 2023 CIR (NIR/R/G) — Regione Toscana Geoscopio OFC",
     },
     "firenze_rgb": {
-        "base_city": "firenze",   # <-- add this
+        "base_city": "firenze",
         "url": "https://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc_rt",
-        "layer": "rt_ofc.5k23.32bit",   # true 8-bit RGB (not the .nir greyscale-only layer)
+        "layer": "rt_ofc.5k23.32bit",
         "wms_version": "1.1.1",
         "nir": False,
         "year": 2023,
@@ -145,9 +146,9 @@ CITY_WMS = {
         "notes": "Toscana 2023 RGB 20cm — same endpoint as CIR, different layer (32bit colore)",
     },
     "torino_rgb": {
-        "base_city": "torino",   # <-- add this
+        "base_city": "torino",
         "url": "https://geomap.reteunitaria.piemonte.it/mapproxy/service",
-        "layer": "coto_ortofoto_2023",  # RGB twin of coto_ortofoto_ir_2023
+        "layer": "coto_ortofoto_2023",
         "wms_version": "1.3.0",
         "nir": False,
         "year": 2023,
@@ -166,9 +167,6 @@ CITY_WMS = {
         "notes": "Bolzano 2023 RGB 20cm — buergernetz, RGB twin of CIR layer",
     },
 }
-
-NO_WMS = ["ancona", "cagliari", "campobasso", "catanzaro",
-          "napoli", "palermo", "potenza", "trieste"]
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -192,17 +190,20 @@ args = p.parse_args()
 
 DEG_PER_M = 1 / 111_320
 
-def get_boundary_bounds(city, boundary_path):
+def get_boundary_data(city, boundary_path):
+    import geopandas as gpd
     if boundary_path:
-        import geopandas as gpd
-        return gpd.read_file(boundary_path).to_crs("EPSG:4326").total_bounds
-    from config.config import connect_db, load_table
-    con = connect_db(read_only=True)
-    cfg = CITY_WMS.get(city, {})
-    lookup_city = cfg.get("base_city", city)   # <-- fall back to city if no base_city
-    bounds = load_table(con, "raw", f"{lookup_city}_boundary").to_crs("EPSG:4326").total_bounds
-    con.close()
-    return bounds
+        gdf = gpd.read_file(boundary_path).to_crs("EPSG:4326")
+    else:
+        from config.config import connect_db, load_table
+        con = connect_db(read_only=True)
+        cfg = CITY_WMS.get(city, {})
+        lookup_city = cfg.get("base_city", city)
+        gdf = load_table(con, "raw", f"{lookup_city}_boundary").to_crs("EPSG:4326")
+        con.close()
+    
+    boundary_geom = unary_union(gdf.geometry.values)
+    return boundary_geom, boundary_geom.bounds
 
 def list_layers(cfg):
     print(f"Connecting to: {cfg['url']}")
@@ -225,7 +226,7 @@ def download_city(city, cfg):
 
     failed_log = os.path.join(out_dir, "failed_tiles.txt")
 
-    xmin, ymin, xmax, ymax = get_boundary_bounds(city, args.boundary)
+    boundary_geom, (xmin, ymin, xmax, ymax) = get_boundary_data(city, args.boundary)
     print(f"\n[{city}] Extent: ({xmin:.4f}, {ymin:.4f}) -> ({xmax:.4f}, {ymax:.4f})")
     print(f"  WMS   : {cfg['url']}")
     print(f"  Year  : {cfg['year']}  |  NIR: {cfg['nir']}  |  {cfg['notes']}")
@@ -252,7 +253,7 @@ def download_city(city, cfg):
 
     cols = math.ceil((xmax - xmin) / tile_deg)
     rows = math.ceil((ymax - ymin) / tile_deg)
-    print(f"  Grid  : {cols} cols x {rows} rows = {cols * rows} tiles  |  GSD={gsd}m  tile={tile_px}px")
+    print(f"  Grid  : {cols} cols x {rows} rows = {cols * rows} bounding box tiles")
 
     transformer  = Transformer.from_crs("EPSG:4326", args.save_crs, always_xy=True)
     t_to_3857    = Transformer.from_crs("EPSG:4326", "EPSG:3857",   always_xy=True)
@@ -267,6 +268,8 @@ def download_city(city, cfg):
         print(f"  Retrying {len(retry_set)} previously failed tiles")
 
     failed = []
+    skipped_count = 0
+    downloaded_count = 0
 
     with tqdm(total=rows * cols, desc=city) as pbar:
         for row in range(rows):
@@ -276,14 +279,21 @@ def download_city(city, cfg):
                 if args.retry_failed and (row, col) not in retry_set:
                     continue
 
-                tile_path = os.path.join(out_dir, f"tile_{row:04d}_{col:04d}.tif")
-                if os.path.exists(tile_path) and not args.retry_failed:
-                    continue
-
                 tx0 = xmin + col * tile_deg
                 ty0 = ymin + row * tile_deg
                 tx1 = min(tx0 + tile_deg, xmax)
                 ty1 = min(ty0 + tile_deg, ymax)
+
+                # ---- NEW: Skip downloading if tile falls completely outside the actual boundary polygon ----
+                tile_footprint = box(tx0, ty0, tx1, ty1)
+                if not tile_footprint.intersects(boundary_geom):
+                    skipped_count += 1
+                    continue
+
+                tile_path = os.path.join(out_dir, f"tile_{row:04d}_{col:04d}.tif")
+                if os.path.exists(tile_path) and not args.retry_failed:
+                    downloaded_count += 1
+                    continue
 
                 ex0 = max(tx0 - overlap_deg, xmin)
                 ey0 = max(ty0 - overlap_deg, ymin)
@@ -323,7 +333,6 @@ def download_city(city, cfg):
                             arr = np.array(img)
                             n_bands = 3
 
-                        # ---- NEW: blank/error-response check ----
                         if arr.std() < args.blank_std_thresh:
                             raise ValueError(
                                 f"blank/uniform response (std={arr.std():.4f})"
@@ -359,6 +368,7 @@ def download_city(city, cfg):
                             )
 
                         success = True
+                        downloaded_count += 1
                         time.sleep(0.5)
                         break
 
@@ -368,16 +378,13 @@ def download_city(city, cfg):
                         else:
                             tqdm.write(f"  FAILED ({row},{col}) after {args.max_retries} attempts: {e}")
                             failed.append((row, col))
-                _ = success
 
-    total = rows * cols
-    print(f"\nDone: {total - len(failed)}/{total} tiles -> {out_dir}")
+    print(f"\nDone! Downloaded/Verified: {downloaded_count} | Skipped outside boundary: {skipped_count} | Failed: {len(failed)}")
     if failed:
         with open(failed_log, "w") as f:
             for r, c in failed:
                 f.write(f"{r},{c}\n")
         print(f"Failed tiles logged to: {failed_log}")
-        print("Re-run with --retry-failed to retry them")
 
 if args.list_layers:
     city = args.city if args.city != "all" else list(CITY_WMS.keys())[0]
