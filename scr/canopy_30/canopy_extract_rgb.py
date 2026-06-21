@@ -1,12 +1,19 @@
 """
-canopy_extract_3.py — Urban tree canopy extraction from orthophoto tiles.
 
 Usage:
-    python canopy_extract_3.py --city venezia
+    python canopy_extract_rgb.py --city venezia
     TEST_MODE=1 python canopy_extract_3.py --city venezia
 """
 import argparse
 import os
+# Force PROJ to see the correct database paths before anything else imports
+os.environ["PROJ_DATA"] = "/opt/anaconda3/envs/gis/share/proj"
+os.environ["PROJ_LIB"] = "/opt/anaconda3/envs/gis/share/proj"
+
+# Your original imports continue below...
+import argparse
+import os
+import sys
 import sys
 import time
 import multiprocessing
@@ -36,7 +43,7 @@ os.chdir(ROOT_PATH)
 
 from config.config import (
     connect_db, gdf_to_duckdb, load_table,
-    get_city_cfg, get_output_paths,
+    get_city_cfg, get_output_paths, gpkg_to_duckdb,
     CRS_WGS, CRS_METRIC, DB_PATH,
 )
 
@@ -68,6 +75,7 @@ OSM_INCLUDE_TAGS = {
 
 # Per-city overrides — extend as needed
 CITY_EXG_THRESH = {
+    "bolzano": 0.18,
     "venezia": 0.20,
     "roma":    0.18,
     "verona":  0.18,
@@ -85,6 +93,7 @@ CITY_MIN_AREA_M2 = {
     "trento":  1.0,
     "perugia": 1.0,
     "bari":    1.0,
+    "bolzano": 1.5,
 }
 
 TILE_DIR_PATTERNS = [
@@ -139,14 +148,18 @@ def _find_tile_dir(city: str, base_city: str) -> Path:
     raise FileNotFoundError(f"No tile directory found for city='{city}'")
 
 
-def _load_boundary(base_city: str):
-    gpkg = DATA_ROOT / f"{base_city}_boundary.gpkg"
-    if gpkg.exists():
-        gdf = gpd.read_file(str(gpkg))
+def _load_boundary(lookup_city: str, boundary_path: Optional[str] = None):
+    """Loads shapely geometry from custom file path, local backup GPKG, or DB."""
+    if boundary_path and Path(boundary_path).exists():
+        gdf = gpd.read_file(boundary_path)
     else:
-        con = connect_db(read_only=True)
-        gdf = load_table(con, "raw", f"{base_city}_boundary")
-        con.close()
+        gpkg = DATA_ROOT / f"{lookup_city}_boundary.gpkg"
+        if gpkg.exists():
+            gdf = gpd.read_file(str(gpkg))
+        else:
+            con = connect_db(read_only=True)
+            gdf = load_table(con, "raw", f"{lookup_city}_boundary")
+            con.close()
     return unary_union(gdf.to_crs(CRS_METRIC).geometry.values)
 
 
@@ -424,17 +437,20 @@ def run_raster_stage(tile_paths: list, cfg: CityConfig, n_workers: int) -> list:
 # ─────────────────────────────────────────────────────────────
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--city", default="bologna")
-    ap.add_argument("--workers", type=int, default=0,
-                    help="Number of parallel workers (0 = auto)")
-    args = ap.parse_args()
+    p = argparse.ArgumentParser()
+    p.add_argument("--city", required=True, help="City key, e.g. 'bari' or 'firenze_rgb'")
+    p.add_argument("--workers", type=int, default=0, help="Number of parallel workers (0 = auto)")
+    p.add_argument("--boundary-city", default=None,
+                    help="Boundary table to use if different from --city (e.g. base city for *_rgb variants)")
+    p.add_argument("--boundary-path", default=None,
+                    help="Load boundary from a file (shp/gpkg/geojson) instead of the DB")
+    args = p.parse_args()
 
     test_mode = os.environ.get("TEST_MODE", "0") == "1"
     city = args.city.lower()
 
     print(f"\n{'='*60}")
-    print(f"  Canopy extraction  |  city={city}  |  test={test_mode}")
+    print(f"  Canopy extraction (NIR)  |  city={city}  |  test={test_mode}")
 
     cfg = CityConfig.build(city, test_mode=test_mode)
     print(f"  Tile dir   : {cfg.tile_dir}")
@@ -496,17 +512,28 @@ def main():
             ignore_index=True
         )
 
-    # Save
+    # Save local GeoPackage file (expects WGS84)
     out_gpkg = DATA_ROOT / city / "canopy_polygons.gpkg"
     out_gpkg.parent.mkdir(parents=True, exist_ok=True)
     final.to_crs(CRS_WGS).to_file(str(out_gpkg), driver="GPKG", layer="canopy")
-    print(f"\nSaved: {out_gpkg}  ({len(final):,} polygons)")
+    print(f"\nSaved local archive: {out_gpkg} ({len(final):,} polygons)")
 
-    con = connect_db()
-    con.execute(f"DROP TABLE IF EXISTS {cfg.db_table}")
-    gdf_to_duckdb(con, final.to_crs(CRS_METRIC), cfg.db_table)
-    con.close()
-    print(f"DB committed: {cfg.db_table}")
+
+    print(f"\nCommitting results to database environment...")
+    try:
+        # Open transaction connection to your project's target .db instance
+        con = connect_db(read_only=False)
+        
+        # Enforce Metric Projection (e.g., EPSG:32632) for precise database calculations
+        metric_gdf = final.to_crs(CRS_METRIC)
+        
+        # Stream into DuckDB - gdf_to_duckdb will handle the custom geometry parsing and schema generation
+        gdf_to_duckdb(con, metric_gdf, f"preprocessing.{city}_canopy")
+        
+        con.close()
+        print(f"✅ DB committed successfully: preprocessing.{city}_canopy")
+    except Exception as e:
+        print(f"⚠️ Warning: Database extraction transfer failed: {e}")
 
 
 if __name__ == "__main__":

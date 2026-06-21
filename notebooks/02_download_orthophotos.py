@@ -1,8 +1,8 @@
 """
-download_orthophotos.py  —  Batch WMS orthophoto tile downloader (patched)
+download_orthophotos.py  —  Batch WMS orthophoto tile downloader (patched for Emilia-Romagna)
 Usage:
-    python download_orthophotos.py --city firenze
-    python download_orthophotos.py --city firenze --retry-failed
+    python download_orthophotos.py --city bologna_rgb
+    python download_orthophotos.py --city bologna_rgb --retry-failed
 """
 import argparse
 import io
@@ -10,6 +10,7 @@ import math
 import os
 import sys
 import time
+from glob import glob
 
 import numpy as np
 import rasterio
@@ -33,9 +34,9 @@ CITY_WMS = {
         "wms_version": "1.3.0",
         "nir": True,
         "year": 2023,
-        "max_px": 4096,
+        "max_px": 2048,
         "fmt": "image/tiff",
-        "notes": "AGEA 2023 NIR — full Emilia-Romagna coverage, replaces rer2023_24_rgb which had gaps",
+        "notes": "AGEA 2023 NIR — full Emilia-Romagna coverage",
     },
     "bolzano": {
         "url": "https://geoservices.buergernetz.bz.it/mapproxy/ows",
@@ -116,13 +117,16 @@ CITY_WMS = {
         "notes": "Veneto 2024 RGB — verify layer with --list-layers",
     },
     "bologna_rgb": {
-        "url": "https://servizigis.regione.emilia-romagna.it/wms/rer2023_24_rgb",
-        "layer": "RER2023_24_RGB",
-        "wms_version": "1.3.0",
+        "base_city": "bologna",
+        "url": "https://servizigis.regione.emilia-romagna.it/wms/agea2023_rgb",
+        "layer": "Agea2023_RGB",
+        "wms_version": "1.1.1",
+        "native_crs": "EPSG:3003",
         "nir": False,
         "year": 2023,
-        "max_px": 4096,
-        "notes": "AGEA 2023 RGB — full Emilia-Romagna coverage",
+        "max_px": 2048,
+        "fmt": "image/png",
+        "notes": "AGEA 2023 RGB — Emilia-Romagna coverage, native EPSG:3003",
     },
     "firenze": {
         "url": "https://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc_rt",
@@ -132,7 +136,7 @@ CITY_WMS = {
         "year": 2023,
         "max_px": 4096,
         "fmt": "image/tiff",
-        "notes": "Toscana 2023 CIR (NIR/R/G) — Regione Toscana Geoscopio OFC",
+        "notes": "Toscana 2023 CIR (NIR/R/G) — Regione Toscana Geoscopio OFC", # <-- Make sure this line is exactly here
     },
     "firenze_rgb": {
         "base_city": "firenze",
@@ -164,7 +168,7 @@ CITY_WMS = {
         "nir": False,
         "year": 2023,
         "max_px": 2000,
-        "notes": "Bolzano 2023 RGB 20cm — buergernetz, RGB twin of CIR layer",
+        "notes": "Bolzano 2023 RGB 20cm — mapproxy, RGB twin of CIR layer",
     },
 }
 
@@ -198,7 +202,10 @@ def get_boundary_data(city, boundary_path):
         from config.config import connect_db, load_table
         con = connect_db(read_only=True)
         cfg = CITY_WMS.get(city, {})
+        
         lookup_city = cfg.get("base_city", city)
+        lookup_city = lookup_city.replace("_rgb", "").replace("_nir", "").replace("_cir", "")
+        
         gdf = load_table(con, "raw", f"{lookup_city}_boundary").to_crs("EPSG:4326")
         con.close()
     
@@ -227,9 +234,23 @@ def download_city(city, cfg):
     failed_log = os.path.join(out_dir, "failed_tiles.txt")
 
     boundary_geom, (xmin, ymin, xmax, ymax) = get_boundary_data(city, args.boundary)
+    
+    gsd_deg     = gsd * DEG_PER_M
+    tile_deg    = tile_px * gsd_deg
+    overlap_deg = overlap_px * gsd_deg
+
+    cols = math.ceil((xmax - xmin) / tile_deg)
+    rows = math.ceil((ymax - ymin) / tile_deg)
+
+    existing_tifs = len(glob(os.path.join(out_dir, "tile_*.tif")))
+    if existing_tifs >= (cols * rows) * 0.75 and not args.retry_failed:
+        print(f"[{city}] Skipping: {existing_tifs} tiles already exist on disk out of max {cols * rows} grid cells.")
+        return
+
     print(f"\n[{city}] Extent: ({xmin:.4f}, {ymin:.4f}) -> ({xmax:.4f}, {ymax:.4f})")
     print(f"  WMS   : {cfg['url']}")
     print(f"  Year  : {cfg['year']}  |  NIR: {cfg['nir']}  |  {cfg['notes']}")
+    print(f"  Grid  : {cols} cols x {rows} rows = {cols * rows} bounding box tiles")
 
     print("  Connecting ...")
     try:
@@ -241,22 +262,22 @@ def download_city(city, cfg):
     layers = list(wms.contents.keys())
     if layer_name is None:
         layer_name = layers[0]
-        print(f"  Auto-selected layer: {layer_name!r}  (use --list-layers to see all)")
+        print(f"  Auto-selected layer: {layer_name!r}")
     if layer_name not in wms.contents:
-        print(f"  ERROR: layer {layer_name!r} not found. Run --list-layers.")
+        print(f"  ERROR: layer {layer_name!r} not found.")
         return
-    print(f"  Layer : {layer_name!r}")
 
-    gsd_deg     = gsd * DEG_PER_M
-    tile_deg    = tile_px * gsd_deg
-    overlap_deg = overlap_px * gsd_deg
-
-    cols = math.ceil((xmax - xmin) / tile_deg)
-    rows = math.ceil((ymax - ymin) / tile_deg)
-    print(f"  Grid  : {cols} cols x {rows} rows = {cols * rows} bounding box tiles")
-
-    transformer  = Transformer.from_crs("EPSG:4326", args.save_crs, always_xy=True)
-    t_to_3857    = Transformer.from_crs("EPSG:4326", "EPSG:3857",   always_xy=True)
+    transformer = Transformer.from_crs("EPSG:4326", args.save_crs, always_xy=True)
+    
+    # Track projection requirements cleanly
+    if "native_crs" in cfg:
+        native_crs = cfg["native_crs"]
+    elif "bologna" in city:
+        native_crs = "EPSG:32632"
+    else:
+        native_crs = "EPSG:3857"
+        
+    t_to_native = Transformer.from_crs("EPSG:4326", native_crs, always_xy=True)
 
     retry_set = set()
     if args.retry_failed and os.path.exists(failed_log):
@@ -270,7 +291,7 @@ def download_city(city, cfg):
     failed = []
     skipped_count = 0
     downloaded_count = 0
-
+    
     with tqdm(total=rows * cols, desc=city) as pbar:
         for row in range(rows):
             for col in range(cols):
@@ -284,7 +305,6 @@ def download_city(city, cfg):
                 tx1 = min(tx0 + tile_deg, xmax)
                 ty1 = min(ty0 + tile_deg, ymax)
 
-                # ---- NEW: Skip downloading if tile falls completely outside the actual boundary polygon ----
                 tile_footprint = box(tx0, ty0, tx1, ty1)
                 if not tile_footprint.intersects(boundary_geom):
                     skipped_count += 1
@@ -303,8 +323,14 @@ def download_city(city, cfg):
                 px_w = max(1, min(round((ex1 - ex0) / gsd_deg), req_px))
                 px_h = max(1, min(round((ey1 - ey0) / gsd_deg), req_px))
 
-                wx0, wy0 = t_to_3857.transform(ex0, ey0)
-                wx1, wy1 = t_to_3857.transform(ex1, ey1)
+                wx0, wy0 = t_to_native.transform(ex0, ey0)
+                wx1, wy1 = t_to_native.transform(ex1, ey1)
+
+                # CRITICAL PATCH: Handle WMS 1.3.0 Axis Ordering Swap for EPSG:32632
+                if "bologna" in city and cfg["wms_version"] == "1.3.0":
+                    wms_bbox = (wy0, wx0, wy1, wx1)
+                else:
+                    wms_bbox = (wx0, wy0, wx1, wy1)
 
                 success = False
                 for attempt in range(args.max_retries):
@@ -312,15 +338,28 @@ def download_city(city, cfg):
                         tile_fmt = cfg.get("fmt", args.fmt)
                         resp = wms.getmap(
                             layers=[layer_name],
-                            srs="EPSG:3857",
-                            bbox=(wx0, wy0, wx1, wy1),
+                            srs=native_crs,
+                            bbox=wms_bbox,
                             size=(px_w, px_h),
                             format=tile_fmt,
                             transparent=False,
                         )
+
                         raw = resp.read()
+                        
+                        # --- DIAGNOSTIC CHECK: Is the server returning text/XML instead of an image? ---
+                        content_type = resp.info().get("Content-Type", "").lower()
+                        if "xml" in content_type or "text" in content_type:
+                            print(f"\n[SERVER ERROR DETECTED] Tile ({row},{col}) returned text instead of an image:")
+                            try:
+                                print(raw.decode("utf-8")[:1000]) # Print first 1000 characters of the error
+                            except:
+                                print(raw[:500])
+                            sys.exit("\nStopping script to fix the server exception above.")
+                        # -----------------------------------------------------------------------------
 
                         if tile_fmt in ("image/tiff", "image/geotiff"):
+
                             with rasterio.MemoryFile(raw) as memfile:
                                 with memfile.open() as src:
                                     n_bands = src.count
@@ -334,9 +373,7 @@ def download_city(city, cfg):
                             n_bands = 3
 
                         if arr.std() < args.blank_std_thresh:
-                            raise ValueError(
-                                f"blank/uniform response (std={arr.std():.4f})"
-                            )
+                            raise ValueError(f"blank/uniform response (std={arr.std():.4f})")
 
                         mx0, my0 = transformer.transform(ex0, ey0)
                         mx1, my1 = transformer.transform(ex1, ey1)
@@ -384,7 +421,6 @@ def download_city(city, cfg):
         with open(failed_log, "w") as f:
             for r, c in failed:
                 f.write(f"{r},{c}\n")
-        print(f"Failed tiles logged to: {failed_log}")
 
 if args.list_layers:
     city = args.city if args.city != "all" else list(CITY_WMS.keys())[0]
@@ -396,6 +432,6 @@ cities_to_run = list(CITY_WMS.keys()) if args.city == "all" else [args.city]
 
 for city in cities_to_run:
     if city not in CITY_WMS:
-        print(f"No WMS configured for '{city}'. Cities with WMS: {', '.join(CITY_WMS.keys())}")
+        print(f"No WMS configured for '{city}'.")
         continue
     download_city(city, CITY_WMS[city])

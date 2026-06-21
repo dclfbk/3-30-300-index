@@ -39,25 +39,24 @@ ROOT_PATH = "/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3
 sys.path.insert(0, ROOT_PATH)
 os.chdir(ROOT_PATH)
 from config.config import connect_db, load_table
+from shapely.ops import unary_union
 
 
-
-def load_boundary(city, target_crs, boundary_path=None):
+def load_boundary(city, ref_crs, boundary_path=None):
+    """Load city boundary, auto-stripping _rgb/_nir/_cir suffixes."""
+    import geopandas as gpd
+    
     if boundary_path:
-        import geopandas as gpd
-        return gpd.read_file(boundary_path).to_crs(target_crs)
-    con = connect_db(read_only=True)
-    try:
-        gdf = load_table(con, "raw", f"{city}_boundary").to_crs(target_crs)
-    except Exception as e:
-        sys.exit(
-            f"Couldn't load '{city}_boundary' from the DB ({e}). "
-            f"Pass --boundary-city if this city's tiles use a different base "
-            f"city's boundary (e.g. firenze_rgb -> firenze), or --boundary-path "
-            f"to load from a file instead."
-        )
-    finally:
+        gdf = gpd.read_file(boundary_path).to_crs(ref_crs)
+    else:
+        con = connect_db(read_only=True)
+        
+        # Strip suffixes to get base city name for DB lookup
+        lookup_city = city.replace("_rgb", "").replace("_nir", "").replace("_cir", "")
+        
+        gdf = load_table(con, "raw", f"{lookup_city}_boundary").to_crs(ref_crs)
         con.close()
+    
     return gdf
 
 
@@ -86,20 +85,31 @@ def main():
     print(f"[{args.city}] plotting in tile CRS: {ref_crs}")
 
     gdf = load_boundary(boundary_city, ref_crs, args.boundary_path)
-    boundary_prepared = prep(gdf.geometry.unary_union)
+    boundary_prepared = prep(gdf.geometry.union_all())
 
-    boxes, skipped_crs = [], 0
+    boxes, skipped_crs, skipped_corrupt = [], 0, 0
     for tp in tif_paths:
-        with rasterio.open(tp) as src:
-            if src.crs != ref_crs:
-                skipped_crs += 1
-                continue
-            boxes.append(tuple(src.bounds))  # (left, bottom, right, top)
+        try:
+            with rasterio.open(tp) as src:
+                if src.crs != ref_crs:
+                    skipped_crs += 1
+                    continue
+                boxes.append(tuple(src.bounds))  # (left, bottom, right, top)
+        except Exception as e:
+            # Corrupted TIFF, incomplete download, or other read error
+            skipped_corrupt += 1
+            print(f"  [SKIP] {os.path.basename(tp)}: {type(e).__name__}")
+            continue
 
     if skipped_crs:
         print(
             f"  WARNING: {skipped_crs} tiles have a different CRS than {ref_crs} "
             f"and were skipped — that mismatch alone could explain missing coverage."
+        )
+    if skipped_corrupt:
+        print(
+            f"  WARNING: {skipped_corrupt} tiles are corrupted or unreadable "
+            f"(truncated downloads, incomplete writes, etc). Delete and re-download them."
         )
 
     fig, ax = plt.subplots(figsize=(10, 10))
@@ -118,7 +128,7 @@ def main():
         ))
 
     ax.set_aspect("equal")
-    ax.set_title(f"{args.city}: {len(boxes)} downloaded tiles vs. boundary ({n_outside} outside)")
+    ax.set_title(f"{args.city}: {len(boxes)} valid tiles vs. boundary ({n_outside} outside)")
     ax.set_xlabel(f"easting ({ref_crs})")
     ax.set_ylabel("northing")
     ax.legend(handles=[
@@ -131,7 +141,7 @@ def main():
     fig.savefig(out_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
-    print(f"[{args.city}] {n_outside}/{len(boxes)} downloaded tiles don't overlap the boundary")
+    print(f"[{args.city}] {n_outside}/{len(boxes)} valid tiles don't overlap the boundary")
     print(f"[{args.city}] saved -> {out_path}")
 
 
