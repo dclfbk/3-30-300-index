@@ -35,9 +35,14 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
 from shapely.geometry import box as shapely_box
 from shapely.prepared import prep
-ROOT_PATH = "/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index/"
-sys.path.insert(0, ROOT_PATH)
+from pathlib import Path
+
+# This finds the directory 2 levels up from this notebook/script (the repository root)
+ROOT_PATH = Path(__file__).resolve().parents[1] 
+
+# Change directory to the root path safely
 os.chdir(ROOT_PATH)
+
 from config.config import connect_db, load_table
 from shapely.ops import unary_union
 

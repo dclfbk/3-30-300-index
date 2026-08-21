@@ -2,20 +2,18 @@ import geopandas as gpd
 import pandas as pd
 import duckdb
 import yaml
-
 import sys
 from pathlib import Path
 
-project_root = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index/notebooks")
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 ROOT_PATH = Path(__file__).resolve().parent.parent
 ROOT_DIR  = ROOT_PATH
 DATA_DIR  = ROOT_DIR / "data"
 LOGS_DIR  = ROOT_DIR / "logs"
 
-DB_PATH = "/Users/terezasaskova/Desktop/3_30_300_master.duckdb"
+
+# Explicitly set the absolute path so it cannot be doubled up
+DB_PATH = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index/3_30_300_master.duckdb")
 CRS_WGS  = "EPSG:4326"
 CRS_METRIC   = "EPSG:32632"
 

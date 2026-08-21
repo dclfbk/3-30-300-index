@@ -83,14 +83,17 @@ def build_hex_layer(con) -> gpd.GeoDataFrame:
 def compute_canopy_compliance(tiles: gpd.GeoDataFrame, con) -> gpd.GeoDataFrame:
     """Compute canopy coverage and 3-30-300 compliance for each hex tile.
 
-    Canopy % is computed over pervious area (hex area minus building footprints),
-    not raw hex area. This avoids penalising dense urban hexes where buildings
-    physically prevent canopy growth — only the ground where trees *can* grow counts.
+    Following 3-30-300 guidance (Konijnendijk, 2025), canopy % is computed
+    over total land surface minus water bodies only; building footprints
+    remain within the denominator, consistent with the handbook's
+    definition of the 30% criterion.
 
     Columns added to tiles:
       hex_area_m2      — total hex polygon area
-      bld_m2           — building footprint area within hex
-      ground_area.     — hex_area_m2 - bld_m2 (clamped to 0)
+      bld_m2           — building footprint area within hex (reported, not
+                          subtracted from the denominator)
+      water_m2         — water body area within hex
+      ground_area       — hex_area_m2 - water_m2 (clamped to 0)
       canopy_m2        — canopy area within hex
       canopy_pct       — canopy_m2 / ground_area * 100
       compliant        — True if canopy_pct >= CANOPY_THRESHOLD (30%)
@@ -103,6 +106,10 @@ def compute_canopy_compliance(tiles: gpd.GeoDataFrame, con) -> gpd.GeoDataFrame:
     buildings["geometry"] = buildings.geometry.apply(make_valid)
     buildings = buildings[buildings.geometry.is_valid & ~buildings.geometry.is_empty]
 
+    water = load_table(con, "raw", f"{CITY}_water").to_crs(CRS_METRIC)
+    water["geometry"] = water.geometry.apply(make_valid)
+    water = water[water.geometry.is_valid & ~water.geometry.is_empty]
+
     bld_overlay = gpd.overlay(tiles[["h3_cell", "geometry"]], buildings[["geometry"]],
                                how="intersection", keep_geom_type=False)
     bld_area = (
@@ -111,6 +118,16 @@ def compute_canopy_compliance(tiles: gpd.GeoDataFrame, con) -> gpd.GeoDataFrame:
         .rename("bld_m2")
         if len(bld_overlay) > 0
         else pd.Series(dtype=float, name="bld_m2")
+    )
+
+    water_overlay = gpd.overlay(tiles[["h3_cell", "geometry"]], water[["geometry"]],
+                                 how="intersection", keep_geom_type=False)
+    water_area = (
+        water_overlay.groupby("h3_cell")["geometry"]
+        .apply(lambda g: g.union_all().area)
+        .rename("water_m2")
+        if len(water_overlay) > 0
+        else pd.Series(dtype=float, name="water_m2")
     )
 
     overlay = gpd.overlay(tiles[["h3_cell", "geometry"]], canopy[["geometry"]],
@@ -124,14 +141,15 @@ def compute_canopy_compliance(tiles: gpd.GeoDataFrame, con) -> gpd.GeoDataFrame:
     )
 
     tiles = tiles.copy()
-    tiles["hex_area_m2"]      = tiles.geometry.area.round(2)
-    tiles["bld_m2"]           = tiles["h3_cell"].map(bld_area).fillna(0.0).round(2)
-    tiles["ground_area"] = (tiles["hex_area_m2"] - tiles["bld_m2"]).clip(lower=0).round(2)
-    tiles["canopy_m2"]        = tiles["h3_cell"].map(canopy_area).fillna(0.0).round(2)
-    tiles["canopy_pct"]       = (
+    tiles["hex_area_m2"] = tiles.geometry.area.round(2)
+    tiles["bld_m2"]      = tiles["h3_cell"].map(bld_area).fillna(0.0).round(2)
+    tiles["water_m2"]    = tiles["h3_cell"].map(water_area).fillna(0.0).round(2)
+    tiles["ground_area"] = (tiles["hex_area_m2"] - tiles["water_m2"]).clip(lower=0).round(2)
+    tiles["canopy_m2"]  = tiles["h3_cell"].map(canopy_area).fillna(0.0).round(2)
+    tiles["canopy_pct"] = (
         tiles["canopy_m2"] / tiles["ground_area"] * 100
     ).where(tiles["ground_area"] > 0, 0.0).round(2)
-    tiles["compliant"]        = tiles["canopy_pct"] >= CANOPY_THRESHOLD
+    tiles["compliant"]  = tiles["canopy_pct"] >= CANOPY_THRESHOLD
     return tiles
 
 

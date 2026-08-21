@@ -417,8 +417,7 @@ def duckdb_postprocess(vector_paths: list, exclusion_gdf: Optional[gpd.GeoDataFr
 # ─────────────────────────────────────────────────────────────
 def run_raster_stage(tile_paths: list, cfg: CityConfig, n_workers: int) -> list:
     """Parallelize tile processing with progress bar."""
-    is_cir = "cir" in cfg.city.lower() # Dynamically detect CIR flag from city string
-    
+    is_cir = "cir" in cfg.city.lower() or "firenze" in cfg.city.lower()
     worker_args = [
         (str(p), str(cfg.scratch_dir), cfg.boundary, cfg.ndvi_thresh, cfg.base_area_m2, is_cir)
         for p in tile_paths

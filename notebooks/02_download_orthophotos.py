@@ -130,13 +130,13 @@ CITY_WMS = {
     },
     "firenze": {
         "url": "https://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc_rt",
-        "layer": "rt_ofc.5k25.32bit.nir",
+        "layer": "rt_ofc.5k23.32bit.nir",
         "wms_version": "1.1.1",
         "nir": True,
         "year": 2023,
         "max_px": 4096,
         "fmt": "image/tiff",
-        "notes": "Toscana 2023 CIR (NIR/R/G) — Regione Toscana Geoscopio OFC", # <-- Make sure this line is exactly here
+        "notes": "Toscana 2023 CIR (NIR/R/G) — Regione Toscana Geoscopio OFC, full territorial coverage",
     },
     "firenze_rgb": {
         "base_city": "firenze",
