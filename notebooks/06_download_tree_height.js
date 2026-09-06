@@ -1,3 +1,7 @@
+// Download and save tree height data for Italian cities from the ETH Global Canopy Height dataset (https://ethz.ch/en/news-and-events/eth-news/news/2021/10/global-canopy-height-map.html)
+// usage: copy and paste the code into the Google Earth Engine Code Editor (https://code.earthengine.google.com/) and run it
+// the results will be printed in the console => save csv and then move it to the data folder of the repo
+
 var canopy = ee.Image("users/nlang/ETH_GlobalCanopyHeight_2020_10m_v1");
 
 var cities = {

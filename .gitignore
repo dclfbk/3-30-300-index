@@ -29,6 +29,15 @@ output/
 cache/
 config/
 lightning_logs/
+sam2/
+bootstrap_pod.sh
+recover_notes.md
+p.py
+scr/canopy_30/03_canopy_extract_thresholds.txt
+scr/canopy_30/04_canopy_extract_notes.txt
+scr/canopy_30/05_canopy_compliance_results.txt
+scr/tree_3/tree_compliance_notes.txt
+scr/tree_3/tree_detection_notes.txt
 
 # ── GraphHopper 
 *.osm.pbf

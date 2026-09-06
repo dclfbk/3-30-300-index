@@ -1,26 +1,24 @@
-CITY = "torino"
-
+CITY = "cagliari"
 #==============================================================
 import os
 import sys
 import warnings
-warnings.filterwarnings("ignore")
 
+warnings.filterwarnings("ignore")
 import duckdb
 import geopandas as gpd
 import osmnx as ox
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pandas as pd
+from config.config import (
+    ROOT_PATH, DB_PATH, get_city_cfg, CRS_WGS, CRS_METRIC,
+    connect_db, gdf_to_duckdb, load_table,get_output_paths,
+    OSM_GREEN_TAGS, PRIVATE_ACCESS,
+)
 
-ROOT_PATH = "/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index"
 sys.path.insert(0, str(ROOT_PATH))
 os.chdir(ROOT_PATH)
-
-from config.config import (
-    DB_PATH, get_city_cfg, CRS_WGS, CRS_METRIC,
-    connect_db, gdf_to_duckdb, load_table,get_output_paths,
-)
 
 con = connect_db()
 cfg  = get_city_cfg(CITY)
@@ -50,14 +48,14 @@ has_ar_vrd = (
 
 if has_ar_vrd:
     con.execute(f"""
-        CREATE OR REPLACE TABLE preprocessing_2.{CITY}_parks_dsbn_ar_vrd AS
+        CREATE OR REPLACE TABLE preprocessing.{CITY}_parks_dsbn_ar_vrd AS
         SELECT
             src.*,
             'dsbn_ar_vrd'                        AS layer_type,
             'dbsn'                               AS source,
             ST_Area(clipped.geometry) / 1e4      AS area_ha,
             clipped.geometry
-        FROM raw_2.{CITY}_parks_area_verde AS src
+        FROM raw.{CITY}_parks_area_verde AS src
         -- clip to boundary
         JOIN LATERAL (
             SELECT ST_Intersection(
@@ -71,50 +69,11 @@ if has_ar_vrd:
 
     result = con.execute(f"""
         SELECT COUNT(*) AS n, SUM(area_ha) AS total_ha
-        FROM preprocessing_2.{CITY}_parks_dsbn_ar_vrd
+        FROM preprocessing.{CITY}_parks_dsbn_ar_vrd
     """).fetchone()
     print(f"area_verde parks+gardens (types 01,95): {result[1]:.0f} ha ({result[0]} features)")
 else:
     print("area_verde: not configured or not loaded for this city")
-
-has_bosco = (
-    "bosco" in cfg["park_layers"]
-    and con.execute(f"""
-        SELECT COUNT(*) FROM information_schema.tables
-        WHERE table_schema = 'raw_2'
-          AND table_name   = '{CITY}_parks_bosco'
-    """).fetchone()[0] > 0
-)
-
-if has_bosco:
-    con.execute(f"""
-        CREATE OR REPLACE TABLE preprocessing_2.{CITY}_parks_dsbn_bosco AS
-        SELECT
-            src.*,
-            'dsbn_bosco'                         AS layer_type,
-            'dbsn'                               AS source,
-            ST_Area(clipped.geometry) / 1e4      AS area_ha,
-            clipped.geometry
-        FROM raw_2.{CITY}_parks_bosco AS src
-        JOIN LATERAL (
-            SELECT ST_Intersection(
-                src.geometry,
-                (SELECT ST_Union_Agg(geometry) FROM raw.{CITY}_boundary)
-            ) AS geometry
-        ) AS clipped ON true
-        WHERE src.bosco_ty IN ('01', '02', '03')
-          AND NOT ST_IsEmpty(clipped.geometry)
-    """)
-
-    result = con.execute(f"""
-        SELECT COUNT(*) AS n, SUM(area_ha) AS total_ha
-        FROM preprocessing_2.{CITY}_parks_dsbn_bosco
-    """).fetchone()
-    n, total_ha = result
-    print(f"bosco: {total_ha:.0f} ha ({n} features)" if total_ha is not None else f"bosco: {n} features (area_ha is null)")
-else:
-    print("bosco: not configured or not loaded for this city")
-
 
 
 has_pe_unis = (
@@ -128,7 +87,7 @@ has_pe_unis = (
 
 if has_pe_unis:
     con.execute(f"""
-        CREATE OR REPLACE TABLE preprocessing_2.{CITY}_parks_dsbn_pe_unis AS
+        CREATE OR REPLACE TABLE preprocessing.{CITY}_parks_dsbn_pe_unis AS
         SELECT
             src.*,
             'dsbn_pe_unis'                       AS layer_type,
@@ -148,52 +107,19 @@ if has_pe_unis:
 
     result = con.execute(f"""
         SELECT COUNT(*) AS n, SUM(area_ha) AS total_ha
-        FROM preprocessing_2.{CITY}_parks_dsbn_pe_unis
+        FROM preprocessing.{CITY}_parks_dsbn_pe_unis
     """).fetchone()
     n, total_ha = result
     print(f"pe_unis: {total_ha:.0f} ha ({n} features)" if total_ha is not None else f"pe_unis: {n} features (area_ha is null)")
 else:
     print("pe_unis: not configured or not loaded for this city")
 
-PRIVATE_ACCESS = {"private", "no", "restricted", "permit", "customers"}
-
-OSM_GREEN_TAGS = {
-    "leisure": [
-        # CLC 141 - Green Urban Areas
-        "park",
-        "garden",
-        "nature_reserve",
-        "playground",
-        # CLC 142 - Sport/Leisure Green
-        "recreation_ground",
-        "pitch",
-        "golf_course",
-        "track",
-        "stadium",
-    ],
-    "landuse": [
-        # CLC 141
-        "village_green",
-        "grass",
-        "recreation_ground",
-        # CLC 131 - Urban Vegetation
-        "forest",
-        "meadow",
-        "allotments",
-    ],
-    "natural": [
-        # CLC 131
-        "wood",
-        "scrub",
-        "heath",
-        "grassland",
-    ],
-}
 
 osm_raw = (
     ox.features_from_polygon(boundary_wgs84, tags=OSM_GREEN_TAGS)
     .to_crs(CRS_METRIC)
 )
+
 osm_raw = osm_raw[
     osm_raw.geometry.geom_type.isin(["Polygon", "MultiPolygon"])
 ].copy()
@@ -201,23 +127,17 @@ osm_raw = osm_raw[
 access = osm_raw["access"] if "access" in osm_raw.columns else gpd.GeoSeries(gpd.NA, index=osm_raw.index)
 osm_public = osm_raw.loc[access.isna() | ~access.isin(PRIVATE_ACCESS)].copy()
 
-#osm_public = osm_raw.loc[
-    #osm_raw["access"].isna() | ~osm_raw["access"].isin(PRIVATE_ACCESS)
-#].copy()
-
-# Push to DuckDB = clipping + area done in SQL
-# Register the raw GDF, then immediately clip & materialise
-gdf_to_duckdb(con, osm_public.reset_index(drop=True), f"raw_2.{CITY}_osm_parks")
+gdf_to_duckdb(con, osm_public.reset_index(drop=True), f"raw.{CITY}_osm_parks")
 
 con.execute(f"""
-    CREATE OR REPLACE TABLE preprocessing_2.{CITY}_parks_osm AS
+    CREATE OR REPLACE TABLE preprocessing.{CITY}_parks_osm AS
     SELECT
         src.*,
         'osm'                                AS layer_type,
         'osm'                                AS source,
         ST_Area(clipped.geometry) / 1e4      AS area_ha,
         clipped.geometry
-    FROM raw_2.{CITY}_osm_parks AS src
+    FROM raw.{CITY}_osm_parks AS src
     JOIN LATERAL (
         SELECT ST_Intersection(
             src.geometry,
@@ -229,7 +149,7 @@ con.execute(f"""
 
 result = con.execute(f"""
     SELECT COUNT(*) AS n, SUM(area_ha) AS total_ha
-    FROM preprocessing_2.{CITY}_parks_osm
+    FROM preprocessing.{CITY}_parks_osm
 """).fetchone()
 print(f"OSM parks+gardens = all   : {len(osm_raw)}")
 print(f"OSM parks+gardens = public (clipped): {result[1]:.0f} ha ({result[0]} features)")
@@ -239,7 +159,7 @@ has_municipal = (
     "municipal" in cfg["park_layers"]
     and con.execute(f"""
         SELECT COUNT(*) FROM information_schema.tables
-        WHERE table_schema = 'raw_2'
+        WHERE table_schema = 'raw'
           AND table_name   = '{CITY}_parks_municipal'
     """).fetchone()[0] > 0
 )
@@ -248,14 +168,14 @@ has_municipal = (
 
 if has_municipal:
     con.execute(f"""
-        CREATE OR REPLACE TABLE preprocessing_2.{CITY}_parks_municipal AS
+        CREATE OR REPLACE TABLE preprocessing.{CITY}_parks_municipal AS
         SELECT
             src.*,
             'municipal'                          AS layer_type,
             'municipal'                          AS source,
             ST_Area(clipped.geometry) / 1e4      AS area_ha,
             clipped.geometry
-        FROM raw_2.{CITY}_parks_municipal AS src
+        FROM raw.{CITY}_parks_municipal AS src
         JOIN LATERAL (
             SELECT ST_Intersection(
                 src.geometry,
@@ -267,7 +187,7 @@ if has_municipal:
 
     result = con.execute(f"""
         SELECT COUNT(*) AS n, SUM(area_ha) AS total_ha
-        FROM preprocessing_2.{CITY}_parks_municipal
+        FROM preprocessing.{CITY}_parks_municipal
     """).fetchone()
     total_ha = result[1] or 0
     print(f"municipal: {total_ha:.0f} ha ({result[0]} features)")
@@ -285,13 +205,13 @@ LAND_BG = "#2e2e4a"
 def _load_for_plot(table):
     exists = con.execute(f"""
         SELECT COUNT(*) FROM information_schema.tables
-        WHERE table_schema = 'preprocessing_2' AND table_name = '{table}'
+        WHERE table_schema = 'preprocessing' AND table_name = '{table}'
     """).fetchone()[0]
     if not exists:
         return None
     df = con.execute(f"""
         SELECT ST_AsWKB(geometry) AS geometry
-        FROM preprocessing_2."{table}"
+        FROM preprocessing."{table}"
     """).df()
     df["geometry"] = df["geometry"].apply(bytes)
     
@@ -326,7 +246,7 @@ for ax, (gdf, color, title) in zip(axes, panels):
 
 fig.suptitle(f"{CITY.title()}: green source comparison", color="white", fontsize=10)
 plt.tight_layout()
-plt.savefig(f"{FIG_DIR}/fig00_greenery_sources_2.png", dpi=150)
+plt.savefig(f"{FIG_DIR}/fig00_greenery_sources.png", dpi=150)
 
 plt.show()
 
@@ -344,7 +264,7 @@ layer_candidates = [
 for tbl in layer_candidates:
     exists = con.execute(f"""
         SELECT COUNT(*) FROM information_schema.tables
-        WHERE table_schema = 'preprocessing_2' AND table_name = '{tbl}'
+        WHERE table_schema = 'preprocessing' AND table_name = '{tbl}'
     """).fetchone()[0]
     if exists:
         available_layers.append(tbl)
@@ -353,11 +273,11 @@ print(f"Merging layers: {available_layers}")
 
 # just stack all sources, no dissolve, no dedup
 union_sql = "\n    UNION ALL\n    ".join(
-    f"SELECT geometry, '{t}' AS source FROM preprocessing_2.{t}" for t in available_layers
+    f"SELECT geometry, '{t}' AS source FROM preprocessing.{t}" for t in available_layers
 )
 
 con.execute(f"""
-    CREATE OR REPLACE TABLE preprocessing_2.{CITY}_parks_greenery AS
+    CREATE OR REPLACE TABLE preprocessing.{CITY}_parks_greenery AS
     SELECT
         row_number() OVER () AS park_id,
         '{CITY}'             AS city,
@@ -370,7 +290,7 @@ con.execute(f"""
 
 result = con.execute(f"""
     SELECT COUNT(*) AS n, SUM(area_ha) AS total_ha
-    FROM preprocessing_2.{CITY}_parks_greenery
+    FROM preprocessing.{CITY}_parks_greenery
 """).fetchone()
 print(f"Merged greenery: {result[0]:,} parks, {result[1]:.0f} ha total")
 

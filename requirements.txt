@@ -1,3 +1,4 @@
+# ── Your original list ──────────────────────────────────────────
 geopandas>=0.14
 pandas>=2.0
 sqlalchemy>=2.0
@@ -8,3 +9,22 @@ requests>=2.31
 osmnx>=1.7
 tqdm>=4.66
 duckdb==1.5.1
+owslib
+h3
+
+# ── Missing: used directly in deep_forest_finetuning.py / _inference.py / sam_3.py ──
+numpy>=1.26
+rasterio>=1.3
+pillow>=10.0
+datasets>=2.19          # HuggingFace datasets, used to load restor/tcd
+
+# ── DeepForest + its runtime deps ───────────────────────────────
+deepforest>=1.4
+pytorch-lightning>=2.0
+torchmetrics>=1.0
+
+# torch / torchvision are intentionally NOT pinned here — install these
+# separately FIRST, matched to your cluster's CUDA version, e.g.:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# then pip install -r requirements.txt afterward so deepforest doesn't
+# pull in a mismatched CPU-only torch as a dependency.

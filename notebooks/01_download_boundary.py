@@ -11,7 +11,7 @@ import geopandas as gpd
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-ROOT_PATH = Path(__file__).resolve().parent
+from config.config import ROOT_PATH
 os.chdir(ROOT_PATH)
 
 with open(ROOT_PATH / "config.yaml") as f:

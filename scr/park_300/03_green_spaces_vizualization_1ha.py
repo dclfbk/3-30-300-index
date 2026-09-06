@@ -19,9 +19,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
 import sys, h3
 
-project_root = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index")
-sys.path.insert(0, str(project_root))
-os.chdir(project_root)
+
 
 from config.config import (
     ROOT_PATH, CRS_METRIC, CRS_WGS,
@@ -30,6 +28,8 @@ from config.config import (
     get_city_cfg, get_output_paths,
 )
 
+
+sys.path.insert(0, str(ROOT_PATH))
 os.chdir(ROOT_PATH)
 
 cfg   = get_city_cfg(CITY)

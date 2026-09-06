@@ -21,9 +21,7 @@ import sys, os
 from pathlib import Path
 import h3
 
-project_root = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index")
-sys.path.insert(0, str(project_root))
-os.chdir(project_root)
+
 
 from config.config import (
     ROOT_PATH, CRS_METRIC, CRS_WGS,
@@ -31,7 +29,7 @@ from config.config import (
     connect_db, gdf_to_duckdb, load_table, gpkg_to_duckdb,
     get_city_cfg, get_output_paths,
 )
-
+sys.path.insert(0, str(ROOT_PATH))
 os.chdir(ROOT_PATH)
 
 cfg   = get_city_cfg(CITY)

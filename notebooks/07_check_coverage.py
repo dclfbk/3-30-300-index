@@ -1,29 +1,12 @@
+# downloaded tile footprints vs. city boundary - check progress for gievn city, possibly brokem wms etc
+# IMPORTANT: run this script each time after downloading tiles
+# sometimes municipality bondary is not fully covered by downloaded tiles and provided orthophotos 
 """
-plot_city_coverage.py — Visual QA: downloaded tile footprints vs. city boundary.
-
-For a given city, opens every tile_*.tif on disk, reads its real bounds/CRS
-straight from the GeoTIFF header (no pixel decoding, so this stays fast even
-at thousands of tiles), reprojects the city boundary polygon to match, and
-draws both. Tiles that don't actually overlap the boundary (e.g. they landed
-in the sea, or a CRS mismatch put them somewhere wrong) are drawn in red
-instead of blue — so this exact class of bug shows up in the figure itself,
-not just as a failure count in a log.
-
 Usage:
-    python plot_city_coverage.py --city bari
-    python plot_city_coverage.py --city firenze_rgb --boundary-city firenze
-    python plot_city_coverage.py --city bari --tiles-dir /custom/path --out /tmp/bari_qa.png
-
-Run with PYTHONPATH=/workspace/3-30-300-index already set (same as the rest
-of the pipeline) so `from config.config import ...` resolves.
-
-Note: this only plots tiles that exist on disk. Tiles that failed to
-download (e.g. blank-response failures) never got written, so they won't
-appear here at all — they'll just show as a gap. If you want failed (row,
-col) cells reconstructed and overlaid too, that needs the exact --gsd /
---tile-px / --overlap-px used in that download run, since the grid is
-anchored to them; ask and I can add it once you confirm those values.
+    python 3-30-300-index/notebooks/07_check_coverage.py --city bari
+    python 3-30-300-index/notebooks/07_check_coverage.py --city firenze_rgb --boundary-city firenze
 """
+
 import argparse
 import glob
 import os
@@ -36,14 +19,7 @@ from matplotlib.patches import Patch, Rectangle
 from shapely.geometry import box as shapely_box
 from shapely.prepared import prep
 from pathlib import Path
-
-# This finds the directory 2 levels up from this notebook/script (the repository root)
-ROOT_PATH = Path(__file__).resolve().parents[1] 
-
-# Change directory to the root path safely
-os.chdir(ROOT_PATH)
-
-from config.config import connect_db, load_table
+from config.config import ROOT_PATH, connect_db, load_table
 from shapely.ops import unary_union
 
 

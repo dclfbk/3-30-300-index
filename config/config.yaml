@@ -62,7 +62,13 @@ bari:
     orthophoto: "data/bari/3trees/bari_orthophoto.tif"
     tree_polygons: "data/bari/3trees/bari_tree_polygons.gpkg"
     wms: "http://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2019/ImageServer/WMSServer"
-
+  canopy_extraction:
+    exg_thresh: 0.117
+    hue_range: [0.261, 0.483]
+    sat_min: 0.173
+    water_guard_gap: 0.03
+    brightness_gate: 42.0
+    closing_enabled: true
 
 bologna:
   query: "Bologna, Italy"
@@ -86,6 +92,35 @@ bologna:
     orthophoto: "data/bologna/3trees/bologna_orthophoto.tif"
     tree_polygons: "data/bologna/3trees/bologna_tree_polygons.gpkg"
 
+bologna_rgb:
+  query: "Bologna, Italy"
+  building_id_col: "NUMEROCOMPLETO"
+  neighbourhood_col: "quartiere"
+  avg_tree_height_m: 11.44
+  park_layers:
+    pe_unis: "data/bologna/300m/parks_raw_pe_unis.gpkg"
+    osm: "data/bologna/300m/parks_raw_osm.gpkg"
+    bosco: "data/bologna/bologna_bosco.gpkg"
+  building_layers:
+    cadastral: "data/bologna/3trees/bologna_cadastral.geojson"
+    gba: "data/bologna/3trees/bologna_gba.geojson"
+  data_sources:
+    boundary: "data/bologna/bologna_boundary.gpkg"
+    buildings_sn: "data/bologna/bologna_buildings_streetnum.gpkg"
+    buildings: "data/bologna/bologna_buildings.gpkg"
+    parks_gardens: "data/bologna/300m/bologna_greenery.gpkg"
+    zones: "data/bologna/300m/bologna_aree_statistiche.geojson"
+    canopy_raster: "data/bologna/30/bologna_ndvi.tif"
+    orthophoto: "data/bologna/3trees/bologna_orthophoto.tif"
+    tree_polygons: "data/bologna/tree_detections_zeroshot_bologna_rgb.gpkg"
+  canopy_extraction:
+    exg_thresh: 0.131
+    hue_range: [0.193, 0.365]
+    sat_min: 0.208
+    water_guard_gap: 0.03
+    closing_enabled: true
+
+  
 bolzano:
   query: "R47207"
   by_osmid: true
@@ -109,6 +144,10 @@ bolzano:
     orthophoto: "data/bolzano/3trees/bolzano_orthophoto.tif"
     tree_polygons: "data/bolzano/3trees/bolzano_tree_polygons.gpkg"
     wms: "https://geoservices.buergernetz.bz.it/mapproxy/ows?service=WMS&version=1.3.0&request=GetCapabilities"
+  canopy_extraction:
+    exg_thresh: 0.18
+    min_area_m2: 1.5
+
 
 cagliari:
   query: "Cagliari, Italy"
@@ -177,6 +216,8 @@ firenze:
   query: "Florence, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "quartiere"
+  civico_via_col: CODICESTRA
+  address_num_col: NUMEROCIVI
   avg_tree_height_m: 12.46
   park_layers:
     pe_unis: "data/firenze/300m/firenze_pe_unis.gpkg"
@@ -195,6 +236,18 @@ firenze:
     orthophoto: "data/firenze/3trees/firenze_orthophoto.tif"
     tree_polygons: "data/firenze/3trees/firenze_tree_polygons.gpkg"
     wms: "https://www502.regione.toscana.it/ows_ofc/com.rt.wms.RTmap/wms?map=owsofc_rt&"
+  canopy_extraction:
+    exg_thresh: 0.09
+    min_area_m2: 1.5
+
+firenze_rgb:
+  canopy_extraction:
+    exg_thresh: 0.115
+    hue_range: [0.261, 0.483]
+    sat_min: 0.177
+    texture_min_var: 0.0
+    brightness_gate: 22.0
+    closing_enabled: true
 
 genova:
   query: "Genoa, Italy"
@@ -219,6 +272,14 @@ genova:
     orthophoto: "data/genova/3trees/genova_orthophoto.tif"
     tree_polygons: "data/genova/3trees/genova_tree_polygons.gpkg"
     wms: "https://geoservizi.regione.liguria.it/geoserver/M2555/ows?service=WMS&"
+  canopy_extraction:
+    exg_thresh: 0.143
+    min_area_m2: 1.0
+    hue_range: [0.195, 0.4]
+    sat_min: 0.226
+    brightness_gate: 45.0
+    water_guard_gap: 0.03
+
 
 milano:
   query: "Milan, Italy"
@@ -242,6 +303,13 @@ milano:
     orthophoto: "data/milano/3trees/milano_orthophoto.tif"
     tree_polygons: "data/milano/3trees/milano_tree_polygons.gpkg"
     wms: "https://www.cartografia.servizirl.it/arcgis5/services/BaseMap/Ortofoto2021/ImageServer/WMSServer"
+  canopy_extraction:
+    exg_thresh: 0.14
+    min_area_m2: 1.5
+    hue_range: [0.16, 0.48]
+    sat_min: 0.24
+    brightness_gate: 44.0
+
 
 napoli:
   query: "Naples, Italy"
@@ -308,7 +376,15 @@ perugia:
     canopy_raster: "data/perugia/perugia_ndvi.tif"
     orthophoto: "data/perugia/perugia_orthophoto.tif"
     tree_polygons: "data/perugia/perugia_tree_polygons.gpkg"
-    
+  canopy_extraction:
+    exg_thresh: 0.14
+    min_area_m2: 1.5
+    hue_range: [0.16, 0.48]
+    sat_min: 0.167
+    brightness_gate: 40.0
+    closing_enabled: true
+    texture_min_var: 0.0008
+
 
 potenza:
   query: "Potenza, Italy"
@@ -336,6 +412,7 @@ roma:
   query: "Rome, Italy"
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: "municipio"
+  civico_id_col: ID
   avg_tree_height_m: 11.31
   park_layers:
     municipal: "data/roma/300m/parks_raw_municipal.gpkg"
@@ -354,6 +431,10 @@ roma:
     canopy_raster: "data/roma/30/roma_ndvi.tif"
     orthophoto: "data/roma/3trees/roma_orthophoto.tif"
     tree_polygons: "data/roma/3trees/roma_tree_polygons.gpkg"
+  canopy_extraction:
+    exg_thresh: 0.18
+    min_area_m2: 1.5
+
 
 torino:
   query: "Turin, Italy"
@@ -377,12 +458,31 @@ torino:
     orthophoto: "data/torino/3trees/torino_orthophoto.tif"
     tree_polygons: "data/torino/3trees/torino_tree_polygons.gpkg"
     wms: "https://geomap.reteunitaria.piemonte.it/WEBCAT/CAPABILITIES/wms_coto_ortofoto_2018.xml"
+  canopy_extraction:
+    exg_thresh: 0.115
+
+# NOTE: torino_rgb has no full block of its own (no query/park_layers/
+# data_sources) — tree_compute.py / canopy_compute.py resolve its shared
+# building/civici/boundary data via base-city fallback to "torino" above.
+# This entry exists ONLY to hold RGB-variant-specific canopy tuning that
+# genuinely differs from plain "torino". Confirm this is intentional
+# rather than a lost block if torino_rgb ever needs its own data_sources.
+
+torino_rgb:
+  canopy_extraction:
+    hue_range: [0.174, 0.317]
+    sat_min: 0.22
+    brightness_gate: 44.0
+    closing_enabled: true
 
 trento:
   query: "R46663"
   by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
   neighbourhood_col: null
+  civico_via_col: strada
+  address_num_col: civico_num
+  address_suffix_col: civico_let
   avg_tree_height_m: 19.03
   park_layers:
     municipal: "data/trento/300m/trento_municipality_parks.gpkg"
@@ -401,6 +501,13 @@ trento:
     orthophoto: "data/trento/3trees/trento_orthophoto.tif"
     tree_polygons: "data/trento/3trees/trento_tree_polygons.gpkg"
     wms: "https://siat.provincia.tn.it/geoserver/stem/ecw-rgb-2015/wms?"
+  canopy_extraction:
+    exg_thresh: 0.148
+    min_area_m2: 1.0
+    hue_range: [0.172, 0.236]
+    sat_min: 0.281
+    brightness_gate: 44.0
+
 
 trieste:
   query: "Trieste, Italy"
@@ -423,6 +530,8 @@ trieste:
     canopy_raster: "data/trieste/trieste_ndvi.tif"
     orthophoto: "data/trieste/trieste_orthophoto.tif"
     tree_polygons: "data/trieste/trieste_tree_polygons.gpkg"
+  canopy_extraction:
+    water_guard_gap: 0.03
 
 venezia:
   query: "Venice, Italy"
@@ -446,11 +555,19 @@ venezia:
     orthophoto: "data/venezia/venezia_orthophoto.tif"
     tree_polygons: "data/venezia/venezia_tree_polygons.gpkg"
     wms: "https://idt2-geoserver.regione.veneto.it/geoserver/ows"
+  canopy_extraction:
+    exg_thresh: 0.155
+    min_area_m2: 6.0
+    hue_range: [0.431, 0.474]
+    sat_min: 0.279
+    water_guard_gap: 0.06
 
 verona:
   query: "R44107"
   by_osmid: true
   building_id_col: "NUMEROCOMPLETO"
+  address_num_col: NUM_CIV
+  address_suffix_col: ESP
   neighbourhood_col: null
   avg_tree_height_m: 9.8
   park_layers:
@@ -471,3 +588,14 @@ verona:
     orthophoto: "data/verona/3trees/verona_orthophoto.tif"
     tree_polygons: "data/verona/3trees/verona_tree_polygons.gpkg"
     wms: "https://idt2-geoserver.regione.veneto.it/geoserver/ows"
+  canopy_extraction:
+    exg_thresh: 0.139
+    min_area_m2: 2.0
+    hue_range: [0.21, 0.28]
+    sat_min: 0.28
+    brightness_gate: 42.0
+    closing_enabled: true
+    water_guard_gap: 0.03
+
+
+

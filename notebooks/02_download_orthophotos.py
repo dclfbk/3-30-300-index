@@ -1,7 +1,8 @@
 """
-download_orthophotos.py  —  Batch WMS orthophoto tile downloader (patched for Emilia-Romagna)
+download_orthophotos.py  —  Batch WMS orthophoto tile downloader 
 Usage:
     python download_orthophotos.py --city bologna_rgb
+    python download_orthophotos.py --city genova_rgb       
     python download_orthophotos.py --city bologna_rgb --retry-failed
 """
 import argparse
@@ -23,7 +24,7 @@ from shapely.geometry import box
 from shapely.ops import unary_union
 from tqdm import tqdm
 
-ROOT_PATH = "/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index/"
+from config.config import ROOT_PATH
 sys.path.insert(0, ROOT_PATH)
 os.chdir(ROOT_PATH)
 
@@ -38,6 +39,7 @@ CITY_WMS = {
         "fmt": "image/tiff",
         "notes": "AGEA 2023 NIR — full Emilia-Romagna coverage",
     },
+    
     "bolzano": {
         "url": "https://geoservices.buergernetz.bz.it/mapproxy/ows",
         "layer": "p_bz-Orthoimagery:Aerial-2023-CIR",
@@ -161,7 +163,7 @@ CITY_WMS = {
         "notes": "Torino 2023 RGB — CSI Piemonte, same server as NIR variant",
     },
     "bolzano_rgb": {
-        "base_city": "bolzano",   
+        "base_city": "bolzano",
         "url": "https://geoservices.buergernetz.bz.it/mapproxy/ows",
         "layer": "p_bz-Orthoimagery:Aerial-2023-RGB",
         "wms_version": "1.3.0",
@@ -170,13 +172,61 @@ CITY_WMS = {
         "max_px": 2000,
         "notes": "Bolzano 2023 RGB 20cm — mapproxy, RGB twin of CIR layer",
     },
+    "bari": {
+    "url": "http://webapps.sit.puglia.it/arcgis/services/BaseMaps/Ortofoto2019/ImageServer/WMSServer",
+    "layer": "0",
+    "wms_version": "1.1.1",
+    "nir": False,
+    "year": 2019,
+    "max_px": 4096,
+    "notes": "Puglia regional SIT (ArcGIS ImageServer) — RGB orthophoto, replaces "
+             "the old geoportale.comune.bari.it entry (domain no longer resolves; "
+             "was also mistakenly configured as CIR/nir=True)",
+    }
 }
+
+# Cities suffixed with '_nir'/'_cir' would follow the same alias pattern if ever needed.
+IMPLICIT_ALIAS_SUFFIXES = ("_rgb",)
+
+
+def resolve_city_config(city):
+    """Resolve a requested city key to a WMS config dict, or None if unknown.
+
+    Lookup order:
+      1. Exact key in CITY_WMS (covers explicit dual-variant entries like
+         'bologna_rgb', 'torino_rgb', which have their own dedicated RGB
+         layer distinct from the NIR/CIR base entry).
+      2. Implicit alias: if the city ends in '_rgb' and isn't already an
+         explicit key, strip the suffix and look up the base city. If that
+         base city's config is itself RGB-only (nir=False) — e.g. genova,
+         milano, perugia, roma, trento, venezia, verona — alias directly to
+         it. This means '--city genova_rgb' works identically to
+         '--city genova' without needing a duplicate hardcoded entry, while
+         still respecting output-dir naming based on the literal city arg.
+    """
+    if city in CITY_WMS:
+        return CITY_WMS[city]
+
+    for suffix in IMPLICIT_ALIAS_SUFFIXES:
+        if city.endswith(suffix):
+            base = city[: -len(suffix)]
+            base_cfg = CITY_WMS.get(base)
+            if base_cfg is not None and not base_cfg.get("nir", False):
+                aliased = dict(base_cfg)
+                aliased.setdefault("base_city", base)
+                aliased.setdefault(
+                    "notes", f"(implicit RGB alias of '{base}') " + base_cfg.get("notes", "")
+                )
+                return aliased
+
+    return None
+
 
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 p = argparse.ArgumentParser()
-p.add_argument("--city",         required=True, help="City name or 'all'")
+p.add_argument("--city",         required=True, help="City name, or 'all'. '<city>_rgb' auto-aliases to an RGB-only base city (e.g. 'genova_rgb' -> 'genova').")
 p.add_argument("--gsd",          type=float, default=0.20)
 p.add_argument("--tile-px",      type=int,   default=2048)
 p.add_argument("--overlap-px",   type=int,   default=64)
@@ -201,14 +251,14 @@ def get_boundary_data(city, boundary_path):
     else:
         from config.config import connect_db, load_table
         con = connect_db(read_only=True)
-        cfg = CITY_WMS.get(city, {})
-        
+        cfg = resolve_city_config(city) or {}
+
         lookup_city = cfg.get("base_city", city)
         lookup_city = lookup_city.replace("_rgb", "").replace("_nir", "").replace("_cir", "")
-        
+
         gdf = load_table(con, "raw", f"{lookup_city}_boundary").to_crs("EPSG:4326")
         con.close()
-    
+
     boundary_geom = unary_union(gdf.geometry.values)
     return boundary_geom, boundary_geom.bounds
 
@@ -234,7 +284,7 @@ def download_city(city, cfg):
     failed_log = os.path.join(out_dir, "failed_tiles.txt")
 
     boundary_geom, (xmin, ymin, xmax, ymax) = get_boundary_data(city, args.boundary)
-    
+
     gsd_deg     = gsd * DEG_PER_M
     tile_deg    = tile_px * gsd_deg
     overlap_deg = overlap_px * gsd_deg
@@ -268,15 +318,19 @@ def download_city(city, cfg):
         return
 
     transformer = Transformer.from_crs("EPSG:4326", args.save_crs, always_xy=True)
-    
-    # Track projection requirements cleanly
+
+    # Track projection requirements cleanly. Use the resolved base city (if
+    # any) for the substring checks below, so implicit aliases (e.g.
+    # 'genova_rgb' -> base 'genova') behave exactly like their base city.
+    check_name = cfg.get("base_city", city)
+
     if "native_crs" in cfg:
         native_crs = cfg["native_crs"]
-    elif "bologna" in city:
+    elif "bologna" in check_name:
         native_crs = "EPSG:32632"
     else:
         native_crs = "EPSG:3857"
-        
+
     t_to_native = Transformer.from_crs("EPSG:4326", native_crs, always_xy=True)
 
     retry_set = set()
@@ -291,7 +345,7 @@ def download_city(city, cfg):
     failed = []
     skipped_count = 0
     downloaded_count = 0
-    
+
     with tqdm(total=rows * cols, desc=city) as pbar:
         for row in range(rows):
             for col in range(cols):
@@ -320,14 +374,14 @@ def download_city(city, cfg):
                 ex1 = min(tx1 + overlap_deg, xmax)
                 ey1 = min(ty1 + overlap_deg, ymax)
 
-                px_w = max(1, min(round((ex1 - ex0) / gsd_deg), req_px))
-                px_h = max(1, min(round((ey1 - ey0) / gsd_deg), req_px))
-
                 wx0, wy0 = t_to_native.transform(ex0, ey0)
                 wx1, wy1 = t_to_native.transform(ex1, ey1)
 
+                px_w = max(1, min(round(abs(wx1 - wx0) / gsd), req_px))
+                px_h = max(1, min(round(abs(wy1 - wy0) / gsd), req_px))
+
                 # CRITICAL PATCH: Handle WMS 1.3.0 Axis Ordering Swap for EPSG:32632
-                if "bologna" in city and cfg["wms_version"] == "1.3.0":
+                if "bologna" in check_name and cfg["wms_version"] == "1.3.0":
                     wms_bbox = (wy0, wx0, wy1, wx1)
                 else:
                     wms_bbox = (wx0, wy0, wx1, wy1)
@@ -346,7 +400,7 @@ def download_city(city, cfg):
                         )
 
                         raw = resp.read()
-                        
+
                         # --- DIAGNOSTIC CHECK: Is the server returning text/XML instead of an image? ---
                         content_type = resp.info().get("Content-Type", "").lower()
                         if "xml" in content_type or "text" in content_type:
@@ -424,14 +478,16 @@ def download_city(city, cfg):
 
 if args.list_layers:
     city = args.city if args.city != "all" else list(CITY_WMS.keys())[0]
-    if city not in CITY_WMS:
+    cfg = resolve_city_config(city)
+    if cfg is None:
         sys.exit(f"Unknown city: {city}")
-    list_layers(CITY_WMS[city])
+    list_layers(cfg)
 
 cities_to_run = list(CITY_WMS.keys()) if args.city == "all" else [args.city]
 
 for city in cities_to_run:
-    if city not in CITY_WMS:
+    cfg = resolve_city_config(city)
+    if cfg is None:
         print(f"No WMS configured for '{city}'.")
         continue
-    download_city(city, CITY_WMS[city])
+    download_city(city, cfg)

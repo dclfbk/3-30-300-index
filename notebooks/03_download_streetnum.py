@@ -1,3 +1,6 @@
+#this script does pairwise comparison of the civici csv and the boundary of the city
+#it saves the points that are within the boundary in a geopackage file + in duckdb
+
 import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Point
@@ -7,7 +10,7 @@ from pathlib import Path
 
 CITY = "laquila"
 
-ROOT_PATH = "/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index"
+from config.config import ROOT_PATH
 sys.path.insert(0, str(ROOT_PATH))
 os.chdir(ROOT_PATH)
 
@@ -20,7 +23,7 @@ con   = connect_db()
 cfg   = get_city_cfg(CITY)
 paths = get_output_paths(CITY)
 
-INPUT_CSV   = "/Users/terezasaskova/Downloads/INDIR_MOLI_20260406.csv"
+INPUT_CSV   = f"data/{CITY}/{CITY}_civici.csv"
 OUTPUT_GPKG = f"data/{CITY}/{CITY}_civici.gpkg"
 
 # --- boundary from DuckDB

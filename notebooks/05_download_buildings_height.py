@@ -1,3 +1,11 @@
+#download_buildings_height.py  —  Download and save building height data for Italian cities
+#donwload from GLOBAL BUILDINGS dataset (https://minedbuildings.z5.web.core.windows.net/global-buildings/dataset-links.csv)
+
+"""
+usage:
+    python download_buildings_height.py 
+"""
+
 import mercantile, requests, gzip, json
 import geopandas as gpd
 from shapely.geometry import shape
@@ -7,8 +15,8 @@ import os
 import sys
 import yaml
 from pathlib import Path
+from config.config import ROOT_PATH
 
-ROOT_PATH = Path("/Users/terezasaskova/Library/Mobile Documents/com~apple~CloudDocs/3-30-300-index")
 sys.path.insert(0, str(ROOT_PATH))
 os.chdir(ROOT_PATH)
 
