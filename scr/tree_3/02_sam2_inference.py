@@ -27,13 +27,17 @@ import os
 import sys
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
-from config.config import (
-    connect_db_with_retry, gdf_to_duckdb, CRS_METRIC, CRS_WGS,
-    ROOT_PATH, DATA_DIR,
-)
 
+ROOT_PATH = "/workspace/3-30-300-index/"
 sys.path.insert(0, str(ROOT_PATH))
 os.chdir(ROOT_PATH)
+
+from config.config import (
+    connect_db_with_retry, gdf_to_duckdb, CRS_METRIC, CRS_WGS,
+    DATA_DIR,
+)
+
+
 
 _parser = argparse.ArgumentParser()
 _parser.add_argument("--city", required=True,

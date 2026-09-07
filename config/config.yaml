@@ -461,19 +461,13 @@ torino:
   canopy_extraction:
     exg_thresh: 0.115
 
-# NOTE: torino_rgb has no full block of its own (no query/park_layers/
-# data_sources) — tree_compute.py / canopy_compute.py resolve its shared
-# building/civici/boundary data via base-city fallback to "torino" above.
-# This entry exists ONLY to hold RGB-variant-specific canopy tuning that
-# genuinely differs from plain "torino". Confirm this is intentional
-# rather than a lost block if torino_rgb ever needs its own data_sources.
-
 torino_rgb:
   canopy_extraction:
     hue_range: [0.174, 0.317]
     sat_min: 0.22
     brightness_gate: 44.0
     closing_enabled: true
+    exg_thresh: 0.115
 
 trento:
   query: "R46663"

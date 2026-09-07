@@ -40,6 +40,11 @@ def _load_and_prepare_trees(con, city: str, city_metric_crs: str, force_reload: 
         try:
             existing = load_table(con, "preprocessing", table_name)
             print(f"[trees] preprocessing.{table_name} found in DB ({len(existing):,} rows) — using it")
+            if "height_m" not in existing.columns:
+                print(f"[trees] Cached table missing 'height_m' — backfilling")
+                existing = _assign_tree_height(existing, city)
+                con.execute(f"CREATE SCHEMA IF NOT EXISTS preprocessing")
+                gdf_to_duckdb(con, existing, f"preprocessing.{table_name}")
             return existing
         except Exception:
             pass
@@ -51,7 +56,7 @@ def _load_and_prepare_trees(con, city: str, city_metric_crs: str, force_reload: 
     else:
         trees = None
 
-    if trees is None: #"SAM2 output not yet in DB" situation.
+    if trees is None:
         sam2_gpkg = DATA_DIR / city / f"tree_detections_zeroshot_{city}.gpkg"
         if not sam2_gpkg.exists():
             raise FileNotFoundError(
@@ -63,18 +68,7 @@ def _load_and_prepare_trees(con, city: str, city_metric_crs: str, force_reload: 
         trees = gpd.read_file(sam2_gpkg, layer="tree_crowns")
         if "df_score" in trees.columns and "score" not in trees.columns:
             trees = trees.rename(columns={"df_score": "score"})
-
-        # Real per-city average tree height from GEE canopy height data,
-        height_csv = DATA_DIR / "city_avg_tree_heights.csv"
-        base_city = strip_source_suffix(city)
-        heights = pd.read_csv(height_csv).set_index("city")["mean_tree_height_m"]
-        height_m = float(heights.get(base_city, heights.get(city)))
-        trees["height_m"] = height_m
-        print(f"[trees] Using height_m={height_m:.2f} for {city}")
-
-    #reproject to a real metric CRS BEFORE caching to DuckDB. load_table() always assumes CRS_METRIC on read regardless of what's
-    # actually stored (DuckDB's spatial GEOMETRY type carries no CRS
-    # metadata)
+        trees = _assign_tree_height(trees, city)
 
     if trees.crs is None:
         trees = trees.set_crs(CRS_WGS)
@@ -82,6 +76,16 @@ def _load_and_prepare_trees(con, city: str, city_metric_crs: str, force_reload: 
 
     con.execute(f"CREATE SCHEMA IF NOT EXISTS preprocessing")
     gdf_to_duckdb(con, trees, f"preprocessing.{table_name}")
+    return trees
+
+
+def _assign_tree_height(trees: gpd.GeoDataFrame, city: str) -> gpd.GeoDataFrame:
+    height_csv = DATA_DIR / "city_avg_tree_heights.csv"
+    base_city = strip_source_suffix(city)
+    heights = pd.read_csv(height_csv).set_index("city")["mean_tree_height_m"]
+    height_m = float(heights.get(base_city, heights.get(city)))
+    trees["height_m"] = height_m
+    print(f"[trees] Using height_m={height_m:.2f} for {city}")
     return trees
 
 _GDAL_ERROR_PRINTED = [False] 

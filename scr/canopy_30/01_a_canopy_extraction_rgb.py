@@ -41,6 +41,10 @@ from shapely.ops import unary_union
 import duckdb
 from tqdm import tqdm
 
+ROOT_PATH = "/workspace/3-30-300-index"
+sys.path.insert(0, ROOT_PATH)
+os.chdir(ROOT_PATH)
+
 from config.config import (
     connect_db, gdf_to_duckdb, load_table, get_city_cfg, load_boundary,
     find_tile_dir, build_osm_exclusion, build_osm_inclusion,
@@ -48,9 +52,7 @@ from config.config import (
     OSM_BUFFER_M, WATER_BUFFER_M, TEST_OSM_BUFFER_DEG,
 )
 
-ROOT_PATH = "/workspace/3-30-300-index"
-sys.path.insert(0, ROOT_PATH)
-os.chdir(ROOT_PATH)
+
 
 BASE_GSD_M            = 0.20
 SIMPLIFY_M            = 1.0
