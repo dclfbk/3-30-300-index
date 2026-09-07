@@ -166,10 +166,10 @@ Civic-address schemas vary per city/provider. `03_tree_compliance.py` tries seve
 
 **WMS connection.** Use `--list-layers` — original processing layers can go offline.
 
-**Orthophoto coverage.** Use `notebooks/07_check_coverage.py` — tiles sometimes don't cover the full OSM boundary.
+**Orthophoto coverage.** Use `notebooks/07_check_coverage.py` — tiles sometimes don't cover the full OSM boundary, which needs to be considered when analysing possibel results.
 
-**FN/FP in zeroshot/SAM2.** Known limitation — thresholds need per-city tuning; lower-quality orthophotos produce lower-quality outputs.
+**FN/FP in zeroshot/SAM2.** Known limitation — thresholds need per-city tuning; lower-quality/highere resolution orthophotos produce lower-quality tree detection, as well as different climates can have more FP/FN. This setup wokrs best for cities with dense greenery. 
 
-**Concurrent DB writers.** `Conflicting lock is held` errors happen under simultaneous city runs. Scripts using `connect_db_with_retry()` retry politely. `02_sam2_inference.py` checkpoints to GPKG/CSV before its final DB commit, so a failed commit never loses computed detections.
+**Concurrent DB writers.** `Conflicting lock is held` errors happen under simultaneous city runs with DuckDB connection. Scripts using `connect_db_with_retry()` retry politely, without crashing the running.
 
 **GraphHopper graph rebuild.** `run_gh.sh` wipes `graph-cache` on every invocation — expect a rebuild delay each time you (re)start it, even for a previously-run city/region.
