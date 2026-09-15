@@ -13,8 +13,13 @@ from shapely.strtree import STRtree
 from pathlib import Path
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+ROOT_PATH = "/workspace/3-30-300-index/"
+sys.path.insert(0, ROOT_PATH)
+os.chdir(ROOT_PATH)
+
 from config.config import (
-    connect_db_with_retry, ROOT_PATH, gdf_to_duckdb, load_table,
+    connect_db_with_retry, gdf_to_duckdb, load_table,
     get_city_cfg, get_output_paths, DB_PATH, CRS_METRIC, CRS_WGS,
     DATA_DIR, strip_source_suffix,
 )
@@ -23,8 +28,7 @@ RESULTS_DIR = Path("/tmp/viewshed_chunks")
 CHUNK_SIZE_M = 500 #this is set to 500m to match the DSM tile size, but could be larger 
 CSV_PATH = DATA_DIR / "rule_3_compliance_summary.csv"
 
-sys.path.insert(0, ROOT_PATH)
-os.chdir(ROOT_PATH)
+
 
 FLOOR_HEIGHT_M  = 3.0 #taking avg building floor height as 3m, which is a common assumption 
 OBSERVER_HEIGHT_M = 1.6 #needed for gdal_viewshed 
@@ -35,46 +39,50 @@ AVG_BUILDING_HEIGHT_M = 10.0 #if height from GBA is not available
 AVG_TREE_HEIGHT_M = 12.2 #avg from all GEE canopy height data  
 
 def _load_and_prepare_trees(con, city: str, city_metric_crs: str, force_reload: bool = False) -> gpd.GeoDataFrame:
+    """Single source of truth: preprocessing.tree_polygons_{city} in DuckDB.
+
+    If the cached table is missing, incomplete (missing 'score' or 'height_m' —
+    both bugs seen in practice from cache entries written before these columns
+    existed), or force_reload is set, it's rebuilt from the SAM2 gpkg and the
+    cache is overwritten, so a stale cache self-heals on the next run instead
+    of silently serving broken data or crashing downstream.
+    """
     table_name = f"tree_polygons_{city}"
+    REQUIRED_COLS = {"height_m", "score", "geometry"}
+
     if not force_reload:
         try:
             existing = load_table(con, "preprocessing", table_name)
-            print(f"[trees] preprocessing.{table_name} found in DB ({len(existing):,} rows) — using it")
-            if "height_m" not in existing.columns:
-                print(f"[trees] Cached table missing 'height_m' — backfilling")
-                existing = _assign_tree_height(existing, city)
-                con.execute(f"CREATE SCHEMA IF NOT EXISTS preprocessing")
-                gdf_to_duckdb(con, existing, f"preprocessing.{table_name}")
-            return existing
+            missing = REQUIRED_COLS - set(existing.columns)
+            if not missing:
+                print(f"[trees] preprocessing.{table_name} found in DB "
+                      f"({len(existing):,} rows) — using it")
+                return existing
+            print(f"[trees] preprocessing.{table_name} found but missing "
+                  f"{sorted(missing)} — rebuilding from source")
         except Exception:
-            pass
-        try:
-            trees = load_table(con, "raw", table_name)
-            print(f"[trees] raw.{table_name} found in DB ({len(trees):,} rows)")
-        except Exception:
-            trees = None
-    else:
-        trees = None
+            print(f"[trees] preprocessing.{table_name} not found in DB — building from source")
 
-    if trees is None:
-        sam2_gpkg = DATA_DIR / city / f"tree_detections_zeroshot_{city}.gpkg"
-        if not sam2_gpkg.exists():
-            raise FileNotFoundError(
-                f"No tree data found for '{city}': neither preprocessing.{table_name} "
-                f"nor raw.{table_name} exist in the DB, and {sam2_gpkg} doesn't exist "
-                f"either. Run sam_3_version2.py --city {city} first."
-            )
-        print(f"[trees] raw.{table_name} not found — loading from SAM2 gpkg: {sam2_gpkg}")
-        trees = gpd.read_file(sam2_gpkg, layer="tree_crowns")
-        if "df_score" in trees.columns and "score" not in trees.columns:
-            trees = trees.rename(columns={"df_score": "score"})
-        trees = _assign_tree_height(trees, city)
+    sam2_gpkg = DATA_DIR / city / f"tree_detections_zeroshot_{city}.gpkg"
+    if not sam2_gpkg.exists():
+        raise FileNotFoundError(
+            f"No tree data found for '{city}': preprocessing.{table_name} is "
+            f"missing/incomplete in DuckDB, and {sam2_gpkg} doesn't exist either. "
+            f"Run 02_sam2_inference.py --city {city} first."
+        )
+    print(f"[trees] Rebuilding preprocessing.{table_name} from {sam2_gpkg}")
+    trees = gpd.read_file(sam2_gpkg, layer="tree_crowns")
+
+    if "df_score" in trees.columns and "score" not in trees.columns:
+        trees = trees.rename(columns={"df_score": "score"})
+
+    trees = _assign_tree_height(trees, city)
 
     if trees.crs is None:
         trees = trees.set_crs(CRS_WGS)
     trees = trees.to_crs(city_metric_crs)
 
-    con.execute(f"CREATE SCHEMA IF NOT EXISTS preprocessing")
+    con.execute("CREATE SCHEMA IF NOT EXISTS preprocessing")
     gdf_to_duckdb(con, trees, f"preprocessing.{table_name}")
     return trees
 

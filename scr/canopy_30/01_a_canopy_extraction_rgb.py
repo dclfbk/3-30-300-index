@@ -1,17 +1,6 @@
-# canopy_extract_rgb.py — Extract tree canopy from RGB tiles by using excess green (ExG) threshold
-# as well as hue/saturation/brightness gates, texture guard, and water guard.
-
 """
-    Usage: 
-    1. 
-    run 3-30-300-index/notebooks/08_testing_threshold_canopy_ext.py first 
-    to check the canopy extraction thresholds for your city
-    2.
-    in config/config.yaml, set the canopy_extraction block for your city
-    3. run 3-30-300-index/scr/canopy_30/01_a_canopy_extraction_rgb.py --city <city>  --n-tiles <number>
-       run 3-30-300-index/scr/canopy_30/01_a_canopy_extraction_rgb.py --city <city>
+canopy_extract_rgb.py — Extract tree canopy from RGB tiles.
 """
-
 import argparse
 import os
 import sys
@@ -26,7 +15,7 @@ from typing import Optional
 from skimage.color import rgb2hsv
 from scipy.ndimage import binary_opening, binary_closing
 
-os.environ["PROJ_DATA"] = "/opt/anaconda3/envs/gis/share/proj" 
+os.environ["PROJ_DATA"] = "/opt/anaconda3/envs/gis/share/proj"
 os.environ["PROJ_LIB"] = "/opt/anaconda3/envs/gis/share/proj"
 
 warnings.filterwarnings("ignore")
@@ -39,6 +28,7 @@ from rasterio.features import shapes
 from shapely.geometry import shape, box
 from shapely.ops import unary_union
 import duckdb
+import osmnx as ox
 from tqdm import tqdm
 
 ROOT_PATH = "/workspace/3-30-300-index"
@@ -46,32 +36,142 @@ sys.path.insert(0, ROOT_PATH)
 os.chdir(ROOT_PATH)
 
 from config.config import (
-    connect_db, gdf_to_duckdb, load_table, get_city_cfg, load_boundary,
-    find_tile_dir, build_osm_exclusion, build_osm_inclusion,
+    connect_db, connect_db_with_retry, gdf_to_duckdb, load_table, get_city_cfg,
     CRS_WGS, CRS_METRIC, DATA_DIR,
-    OSM_BUFFER_M, WATER_BUFFER_M, TEST_OSM_BUFFER_DEG,
+    OSM_EXCLUDE_TAGS, WATER_TAG_KEYS, OSM_INCLUDE_TAGS,
+    build_osm_exclusion, build_osm_inclusion, _fetch_osm_tag, _is_water_tag, _osm_cache_path,
 )
-
-
 
 BASE_GSD_M            = 0.20
 SIMPLIFY_M            = 1.0
 OSM_BUFFER_M          = 2.0
 WATER_BUFFER_M        = 6.0
-TILE_TIMEOUT_S        = 120 
+TILE_TIMEOUT_S        = 120
+
 PRE_SIMPLIFY_M         = 0.15
 REDUCE_PRECISION_M     = 0.05
-ENABLE_FINAL_SIMPLIFY = True
+ENABLE_FINAL_SIMPLIFY = False
 TEST_OSM_BUFFER_DEG    = 0.001
 GRID_CELL_M            = 100
 DISSOLVE_STRIP_WIDTH_CELLS = 8
 DISSOLVE_THREADS       = 2
 NORMAL_THREADS         = 8
 NOISE_OPENING_STRUCT = np.ones((2, 2))
-
 # Closing bridges small gaps between nearby true canopy regions (thin
 # shadow lines, single-row near-misses between touching crowns).
-CANOPY_CLOSING_STRUCT = np.ones((5, 5))
+CANOPY_CLOSING_STRUCT = np.ones((3, 3))
+
+TILE_DIR_PATTERNS = [
+    "{city}/{city}_ortho_tiles",
+]
+
+
+def _find_tile_dir(city: str, base_city: str) -> Path:
+    for pat in TILE_DIR_PATTERNS:
+        for candidate in [
+            DATA_DIR / pat.format(city=city),
+            DATA_DIR / base_city / pat.format(city=city),
+            DATA_DIR / base_city / pat.format(city=base_city),
+        ]:
+            if candidate.exists():
+                return candidate
+    raise FileNotFoundError(f"No tile directory found for city='{city}'")
+
+
+def _load_boundary(lookup_city: str, boundary_path: Optional[str] = None):
+    if boundary_path and Path(boundary_path).exists():
+        gdf = gpd.read_file(boundary_path)
+    else:
+        gpkg = DATA_DIR / f"{lookup_city}_boundary.gpkg"
+        if gpkg.exists():
+            gdf = gpd.read_file(str(gpkg))
+        else:
+            con = connect_db(read_only=True)
+            gdf = load_table(con, "raw", f"{lookup_city}_boundary")
+            con.close()
+    return unary_union(gdf.to_crs(CRS_METRIC).geometry.values)
+
+
+def _osm_cache_path(city: str, key: str, value, scope: str) -> Path:
+    safe_val = str(value).replace("/", "_")
+    return DATA_DIR / "osm_cache" / f"{city}__{key}__{safe_val}__{scope}.gpkg"
+
+from osmnx._errors import InsufficientResponseError
+
+def _fetch_osm_tag(city: str, key: str, value, query_geom, scope: str) -> Optional[gpd.GeoDataFrame]:
+    cache = _osm_cache_path(city, key, value, scope)
+    if cache.exists():
+        return gpd.read_file(str(cache))
+    try:
+        gdf = ox.features_from_polygon(query_geom, tags={key: value})
+        polys = gdf[gdf.geometry.geom_type.isin(["Polygon", "MultiPolygon"])][["geometry"]].copy()
+        if polys.empty:
+            return None
+        polys["osm_tag"] = f"{key}={value}"
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        polys.to_file(str(cache), driver="GPKG")
+        return polys
+    except InsufficientResponseError:
+        # Query succeeded, genuinely zero features here — expected, not a
+        # failure. No retry, no warning.
+        return None
+    except Exception:
+        return None
+
+
+def _is_water_tag(key: str, value) -> bool:
+    return value in WATER_TAG_KEYS.get(key, set())
+
+
+def build_osm_exclusion(city: str, query_geom, scope: str) -> Optional[gpd.GeoDataFrame]:
+    water_gdfs = []
+    other_gdfs = []
+    for key, values in OSM_EXCLUDE_TAGS.items():
+        tag_list = values if isinstance(values, list) else [values]
+        for value in tag_list:
+            gdf = _fetch_osm_tag(city, key, value, query_geom, scope)
+            if gdf is None:
+                continue
+            if _is_water_tag(key, value):
+                water_gdfs.append(gdf)
+            else:
+                other_gdfs.append(gdf)
+
+    if not water_gdfs and not other_gdfs:
+        return None
+
+    parts = []
+    if water_gdfs:
+        water = gpd.GeoDataFrame(
+            pd.concat(water_gdfs, ignore_index=True), crs=CRS_WGS
+        ).to_crs(CRS_METRIC)
+        water["geometry"] = water.geometry.buffer(-WATER_BUFFER_M)
+        parts.append(water[~water.geometry.is_empty].copy())
+    if other_gdfs:
+        other = gpd.GeoDataFrame(
+            pd.concat(other_gdfs, ignore_index=True), crs=CRS_WGS
+        ).to_crs(CRS_METRIC)
+        other["geometry"] = other.geometry.buffer(-OSM_BUFFER_M)
+        parts.append(other[~other.geometry.is_empty].copy())
+
+    return gpd.GeoDataFrame(pd.concat(parts, ignore_index=True), crs=CRS_METRIC)
+
+
+def build_osm_inclusion(city: str, query_geom, scope: str) -> Optional[gpd.GeoDataFrame]:
+    # NOTE: this was called in main() but missing entirely from both this
+    # file and config.py after the reorder attempt — restored here.
+    gdfs = []
+    for key, values in OSM_INCLUDE_TAGS.items():
+        for value in values:
+            gdf = _fetch_osm_tag(city, key, value, query_geom, scope)
+            if gdf is not None:
+                gdfs.append(gdf)
+    if not gdfs:
+        return None
+    return gpd.GeoDataFrame(
+        pd.concat(gdfs, ignore_index=True), crs=CRS_WGS
+    ).to_crs(CRS_METRIC)
+
 
 def _tile_footprint_envelope_wgs(tile_paths: list) -> object:
     boxes = []
@@ -114,11 +214,11 @@ class CityConfig:
     def build(cls, city: str, test_mode: bool = False) -> "CityConfig":
         base_city = city.replace("_rgb", "")
 
-        tile_dir = find_tile_dir(city, base_city)
+        tile_dir = _find_tile_dir(city, base_city)
         scratch_dir = DATA_DIR / f"canopy_{city}_{'test_' if test_mode else ''}tmp"
         scratch_dir.mkdir(parents=True, exist_ok=True)
 
-        boundary = load_boundary(base_city)
+        boundary = _load_boundary(base_city)
 
         # Per-city canopy-extraction tuning now lives in config.yaml under
         # each city's canopy_extraction: block, not hardcoded dicts here.
@@ -249,9 +349,13 @@ def veg_mask(data: np.ndarray, gsd_m: float, exg_thresh: float, base_area_m2: fl
 
     if mask.any():
         if closing_enabled:
+            # Bridge small gaps (thin shadow lines, single-row near-misses)
+            # between nearby true canopy regions BEFORE opening — closing
+            # can only help connectivity, opening can only hurt it, so
+            # order matters: close first to reconnect, then open to clean
+            # up genuine noise on the now-reconnected mask.
             mask = binary_closing(mask, structure=CANOPY_CLOSING_STRUCT).astype(np.uint8)
-        # binary_opening disabled here for this test — see caller note
-        # mask = binary_opening(mask, structure=NOISE_OPENING_STRUCT).astype(np.uint8)
+        mask = binary_opening(mask, structure=NOISE_OPENING_STRUCT).astype(np.uint8)
 
     return mask, min_area
 
@@ -314,21 +418,18 @@ def process_tile(args: tuple) -> Optional[str]:
 
 
 def duckdb_postprocess(vector_paths, exclusion_gdf, cfg: CityConfig):
+    process_con = connect_db_with_retry()
+    process_con.execute("SET memory_limit='64GB'")
+    process_con.execute("SET threads=8")
+    process_con.execute("SET preserve_insertion_order=false")
+
     min_area = cfg.base_area_m2
 
     db_file = cfg.scratch_dir / "duckdb_temp.db"
     if db_file.exists():
         db_file.unlink()
 
-    process_con = duckdb.connect(str(db_file))
     process_con.execute("INSTALL spatial; LOAD spatial;")
-
-    process_con.execute(f"""
-        SET threads={NORMAL_THREADS};
-        SET preserve_insertion_order=false;
-        SET memory_limit='5GB';
-        SET temp_directory='{cfg.scratch_dir}';
-    """)
 
     print(f"DuckDB: Natively scanning {len(vector_paths):,} Parquet shards ...")
 
@@ -432,7 +533,7 @@ def duckdb_postprocess(vector_paths, exclusion_gdf, cfg: CityConfig):
 
         process_con.execute("""
             CREATE OR REPLACE TABLE canopy_hit AS
-            SELECT c.geom
+            SELECT ROW_NUMBER() OVER () AS rid, geom
             FROM canopy_final c
             WHERE EXISTS (
                 SELECT 1 FROM excl e WHERE c.geom && e.geom AND ST_Intersects(c.geom, e.geom)
@@ -443,9 +544,10 @@ def duckdb_postprocess(vector_paths, exclusion_gdf, cfg: CityConfig):
 
         process_con.execute("""
             CREATE OR REPLACE TABLE canopy_diff AS
-            SELECT ST_Difference(ST_MakeValid(c.geom), ST_MakeValid(e.geom)) AS geom
+            SELECT ST_Difference(ST_MakeValid(c.geom), ST_MakeValid(ST_Union_Agg(e.geom))) AS geom
             FROM canopy_hit c
             JOIN excl e ON c.geom && e.geom AND ST_Intersects(c.geom, e.geom)
+            GROUP BY c.rid, c.geom
         """)
 
         process_con.execute(f"""
@@ -616,9 +718,9 @@ def main():
         metric_gdf = final.to_crs(CRS_METRIC)
         gdf_to_duckdb(con, metric_gdf, f"preprocessing.{base_city}_canopy")
         con.close()
-        print(f"DB committed successfully: preprocessing.{base_city}_canopy")
+        print(f"✅ DB committed successfully: preprocessing.{base_city}_canopy")
     except Exception as e:
-        print(f"Warning: Database extraction transfer failed: {e}")
+        print(f"⚠️ Warning: Database extraction transfer failed: {e}")
 
 
 if __name__ == "__main__":

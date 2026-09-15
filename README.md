@@ -15,30 +15,30 @@ Computed per civic address (not per grid cell or population estimate), using ort
 ```
 3-30-300-index/
 ├── config/
-│   ├── config.py                 # Shared helpers, constants, OSM tags
-│   ├── config.yaml                # Per-city configuration
-│   ├── gh_cities.yml               # City → regional OSM extract mapping (for GraphHopper)
-│   ├── config_template.yml         # GraphHopper server config template
-│   └── run_gh.sh                   # Starts local GraphHopper routing server for a city
+│ ├── config.py # Shared helpers, constants, OSM tags
+│ ├── config.yaml # Per-city configuration
+│ ├── gh_cities.yml # City → regional OSM extract mapping (for GraphHopper)
+│ ├── config_template.yml # GraphHopper server config template
+│ └── run_gh.sh # Starts local GraphHopper routing server for a city
 ├── data/
-│   └── {city}/                    # One folder per city
-├── notebooks/                     # Boundary/orthophoto/streetnum/height downloaders,
-│                                   # coverage checks, pixel-fix utilities (01–11)
+│ └── {city}/ # One folder per city
+├── notebooks/ # Boundary/orthophoto/streetnum/height downloaders,
+│ # coverage checks, pixel-fix utilities (01–11)
 ├── scr/
-│   ├── tree_3/                    # Rule 3 pipeline
-│   │   ├── 01_deepforest.py          # Zero-shot DeepForest
-│   │   ├── 02_sam2_inference.py      # SAM2 crown polygon refinement
-│   │   └── 03_tree_compliance.py     # gdal_viewshed-based compliance
-│   ├── canopy_30/                 # Rule 30% pipeline
-│   │   ├── 01_a_canopy_extraction_rgb.py   # ExG-based canopy extraction
-│   │   ├── 01_b_canopy_extraction_nir.py   # NDVI-based canopy extraction
-│   │   └── 02_canopy_compliance.py         # H3 hex-grid canopy coverage
-│   └── park_300/                  # Rule 300m pipeline
-│       ├── 01_green_spaces_dataset_0ha.py  # Merges OSM + DBSN + municipal layers
-│       ├── 01_green_spaces_dataset_1ha.py  # (0ha/1ha = min. park-size threshold — confirm which is primary)
-│       ├── 02_green_spaces_compliance.ipynb  # GraphHopper walking-distance routing
-│       └── 03_green_spaces_vizualization_*.py
-└── 3_30_300_master.duckdb        # Shared spatial database (all cities, all rules)
+│ ├── tree_3/ # Rule 3 pipeline
+│ │ ├── 01_deepforest.py # Zero-shot DeepForest
+│ │ ├── 02_sam2_inference.py # SAM2 crown polygon refinement
+│ │ └── 03_tree_compliance.py # gdal_viewshed-based compliance
+│ ├── canopy_30/ # Rule 30% pipeline
+│ │ ├── 01_a_canopy_extraction_rgb.py # ExG-based canopy extraction
+│ │ ├── 01_b_canopy_extraction_nir.py # NDVI-based canopy extraction
+│ │ └── 02_canopy_compliance.py # H3 hex-grid canopy coverage
+│ └── park_300/ # Rule 300m pipeline
+│ ├── 01_green_spaces_dataset_0ha.py # Merges OSM + DBSN + municipal layers, no minimum park size [CONFIRM primary]
+│ ├── 01_green_spaces_dataset_1ha.py # Same, with a 1ha minimum park-size threshold [CONFIRM primary]
+│ ├── 02_green_spaces_compliance.ipynb # GraphHopper walking-distance routing
+│ └── 03_green_spaces_vizualization_*.py
+└── 3_30_300_master.duckdb # Shared spatial database (all cities, all rules)
 ```
 
 ---

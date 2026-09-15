@@ -18,11 +18,11 @@ import geopandas as gpd
 from shapely.geometry import box
 from pathlib import Path
 
-CSV_PATH = "3-30-300-index/data/trento/trento_tree_detections_ZEROSHOT_RESSCALED.csv"
-GPKG_PATH = "3-30-300-index/data/trento/trento_tree_detections_ZEROSHOT_RESSCALED.gpkg"
+CSV_PATH = "/workspace/3-30-300-index/data/bari/bari_tree_detections_ZEROSHOT_RESSCALED.csv"
+GPKG_PATH = "/workspace/3-30-300-index/data/bari/bari_tree_detections_ZEROSHOT_RESSCALED.gpkg"
 
 
-TILES_DIR = "3-30-300-index/data/trento/trento_ortho_tiles"
+TILES_DIR = "/workspace/3-30-300-index/data/bari/bari_ortho_tiles"
 FALLBACK_CRS = "EPSG:32632" 
 
 def build_from_pixels(df, tiles_dir):

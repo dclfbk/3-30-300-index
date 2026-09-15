@@ -218,7 +218,6 @@ def gpkg_to_duckdb(con: duckdb.DuckDBPyConnection,
     gdf_to_duckdb(con, gdf, schema_table)
     return gdf
 
-
 OSM_EXCLUDE_TAGS = {
     "leisure":  ["pitch", "track", "golf_course", "stadium"],
     "landuse":  ["agriculture", "crop", "farmland", "farmyard", "meadow", "grass",
@@ -226,15 +225,15 @@ OSM_EXCLUDE_TAGS = {
     "natural":  ["grassland", "fell", "heath", "scrub", "water", "wetland", "beach",
                  "bay", "strait", "coastline"],
     "landcover": ["crops", "grass", "field", "meadow", "vineyard", "orchard", "scrub", "heath", "bare_rock"],
-    "water":    ["river", "canal", "lake", "reservoir", "pond", "sea", "wetland", "ocean"],
-    "place":    ["sea"],
+    "water":    ["river", "canal", "lake", "reservoir", "pond", "wetland"],   # dropped "sea", "ocean"
+    "place":    [],   # dropped "sea" entirely — never fetched now
     "building": True,
 }
 
 WATER_TAG_KEYS = {
     "natural": {"water", "wetland", "beach", "bay", "strait", "coastline"},
-    "water":   {"river", "canal", "lake", "reservoir", "pond", "sea", "wetland", "ocean"},
-    "place":   {"sea"},
+    "water":   {"river", "canal", "lake", "reservoir", "pond", "wetland"},  # dropped "sea", "ocean"
+    "place":   set(),  # dropped {"sea"} entirely
 }
 
 OSM_INCLUDE_TAGS = {

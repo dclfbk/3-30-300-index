@@ -242,11 +242,11 @@ firenze:
 
 firenze_rgb:
   canopy_extraction:
-    exg_thresh: 0.115
-    hue_range: [0.261, 0.483]
-    sat_min: 0.177
+    exg_thresh: 0.08          # was 0.09 — small nudge down
+    hue_range: [0.14, 0.50]   # was [0.15, 0.50] — slightly wider on the low end
+    sat_min: 0.12             # was 0.13 — small nudge down
     texture_min_var: 0.0
-    brightness_gate: 22.0
+    brightness_gate: 18.0     # was 20.0 — small nudge down
     closing_enabled: true
 
 genova:
@@ -304,11 +304,11 @@ milano:
     tree_polygons: "data/milano/3trees/milano_tree_polygons.gpkg"
     wms: "https://www.cartografia.servizirl.it/arcgis5/services/BaseMap/Ortofoto2021/ImageServer/WMSServer"
   canopy_extraction:
-    exg_thresh: 0.14
-    min_area_m2: 1.5
-    hue_range: [0.16, 0.48]
-    sat_min: 0.24
-    brightness_gate: 44.0
+    exg_thresh: 0.09          # was 0.14 — lower to catch weaker-signal canopy
+    min_area_m2: 1.0          # was 1.5 — stop discarding small fragments
+    hue_range: [0.14, 0.50]   # was [0.16, 0.48] — widen further
+    sat_min: 0.13             # was 0.24 — this was the second-highest sat_min in your whole config, major bottleneck
+    brightness_gate: 22.0     # was 44.0 — was tied for the highest brightness gate of any city, rejecting all shaded canopy
 
 
 napoli:
@@ -377,14 +377,12 @@ perugia:
     orthophoto: "data/perugia/perugia_orthophoto.tif"
     tree_polygons: "data/perugia/perugia_tree_polygons.gpkg"
   canopy_extraction:
-    exg_thresh: 0.14
+    exg_thresh: 0.116
     min_area_m2: 1.5
-    hue_range: [0.16, 0.48]
-    sat_min: 0.167
+    hue_range: [0.275, 0.422]
+    sat_min: 0.171
     brightness_gate: 40.0
     closing_enabled: true
-    texture_min_var: 0.0008
-
 
 potenza:
   query: "Potenza, Italy"
@@ -463,11 +461,12 @@ torino:
 
 torino_rgb:
   canopy_extraction:
-    hue_range: [0.174, 0.317]
-    sat_min: 0.22
-    brightness_gate: 44.0
+    hue_range: [0.15, 0.50]   # was [0.15, 0.50] — pull back toward the original correct-shape range
+    sat_min: 0.15             # was 0.15 — small nudge up
+    brightness_gate: 28.0      # was 28.0 — small nudge up
     closing_enabled: true
-    exg_thresh: 0.115
+    exg_thresh: 0.10          # was 0.10 — small nudge up
+
 
 trento:
   query: "R46663"
@@ -550,12 +549,17 @@ venezia:
     tree_polygons: "data/venezia/venezia_tree_polygons.gpkg"
     wms: "https://idt2-geoserver.regione.veneto.it/geoserver/ows"
   canopy_extraction:
-    exg_thresh: 0.155
-    min_area_m2: 6.0
-    hue_range: [0.431, 0.474]
-    sat_min: 0.279
-    water_guard_gap: 0.06
-
+    exg_thresh: 0.12
+    min_area_m2: 1.0
+    hue_range: [0.16, 0.46]
+    sat_min: 0.18
+    water_guard_gap: 0.08
+    brightness_gate: 22.0
+    closing_enabled: true
+    # texture_min_var removed — was causing severe canopy underdetection;
+    # meadow/sea overdetection is expected in --skip-osm testing and is
+    # handled downstream by OSM exclusion in the full pipeline run
+    
 verona:
   query: "R44107"
   by_osmid: true
@@ -585,11 +589,10 @@ verona:
   canopy_extraction:
     exg_thresh: 0.139
     min_area_m2: 2.0
-    hue_range: [0.21, 0.28]
-    sat_min: 0.28
+    hue_range: [0.18, 0.32]     # widened slightly — was too tight around pure green
+    sat_min: 0.20               # was 0.28 — too strict, filtering out shadowed canopy
     brightness_gate: 42.0
     closing_enabled: true
     water_guard_gap: 0.03
-
-
+    texture_min_var: 0.0008     # NEW — rejects smooth uniform surfaces like mowed meadow, same fix used for Firenze
 

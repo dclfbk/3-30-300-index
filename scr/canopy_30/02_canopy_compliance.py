@@ -29,16 +29,20 @@ from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from shapely.geometry import Polygon, box
 from shapely.validation import make_valid
+
+ROOT_PATH = Path(__file__).parent.parent.parent.resolve()
+sys.path.insert(0, str(ROOT_PATH))
+os.chdir(ROOT_PATH)
+
 from config.config import (
-    connect_db, load_table, gdf_to_duckdb, get_city_cfg, strip_source_suffix,
-    fetch_osm_tag, connect_db_with_retry,
-    CRS_WGS, CRS_METRIC, ROOT_PATH, DATA_DIR, WATER_TAG_KEYS,
+    connect_db_with_retry, load_table, gdf_to_duckdb, get_city_cfg, strip_source_suffix,
+    _osm_cache_path, _fetch_osm_tag, connect_db_with_retry,
+    CRS_WGS, CRS_METRIC, DATA_DIR, WATER_TAG_KEYS,
     DB_PATH, DB_LOCK_MAX_RETRIES, DB_LOCK_BASE_WAIT_S, DB_LOCK_MAX_WAIT_S,
 )
 
 
-sys.path.insert(0, str(ROOT_PATH))
-os.chdir(ROOT_PATH)
+
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(message)s")
 log = logging.getLogger(__name__)
@@ -79,7 +83,7 @@ def load_or_fetch_water(con, city: str, boundary_gdf: gpd.GeoDataFrame) -> gpd.G
     gdfs = []
     for key, values in WATER_TAG_KEYS.items():
         for value in values:
-            gdf = fetch_osm_tag(base_city, key, value, polygon, scope="full")
+            gdf = _fetch_osm_tag(base_city, key, value, polygon, scope="full")
             if gdf is not None:
                 gdfs.append(gdf)
 

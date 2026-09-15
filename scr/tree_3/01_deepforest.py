@@ -19,29 +19,32 @@ from pathlib import Path
 from torchvision.ops import nms
 from shapely.ops import unary_union
 from deepforest import main as df_main
+
+ROOT_PATH = Path("/workspace/3-30-300-index/")
+sys.path.insert(0, str(ROOT_PATH))
+os.chdir(ROOT_PATH)
 from config.config import (
     connect_db_with_retry, gdf_to_duckdb, load_table, strip_source_suffix,
     CRS_METRIC, ROOT_PATH, DATA_DIR, CITIES,
     DB_LOCK_MAX_RETRIES, DB_LOCK_BASE_WAIT_S, DB_LOCK_MAX_WAIT_S,
 )
 
-sys.path.insert(0, str(ROOT_PATH))
-os.chdir(ROOT_PATH)
+
 
 TARGET_PATCH_METERS = 80.0
 
-cities_to_run = list(CITIES.keys()) if args.city == "all" else [target]
+
 
 EFFECTIVE_GSD = {
     "genova": 0.1430,
-    "torino_rgb": 0.1447,   
-    "trento": 0.1338,       
+    "torino_rgb": 0.30,   # updated: now AGEA 2021 leaf-on imagery, was 0.1447 (leaf-off coto_ortofoto_2023)
+    "trento": 0.1338,
 }
 
 DEFAULT_GSD = 0.20
 PATCH_OVERLAP       = 0.2
 IOU_THRESHOLD        = 0.45
-INFER_SCORE_THRESH  = 0.10
+INFER_SCORE_THRESH  = 0.22
 DEDUPE_IOU_INTRA = 0.3
 DEDUPE_IOU_CROSS = 0.3
 TEST_TILE_LIMIT = 5
@@ -146,7 +149,7 @@ def process_single_city(city, tile_dir, model, tile_limit=None):
     processed = 0
 
     for i, tif_path in enumerate(tif_files):
-        if tif_path.stat().st_size < 1_000_000:
+        if tif_path.stat().st_size < 50_000:
             continue
 
         if tile_limit and processed >= tile_limit:

@@ -8,7 +8,6 @@ SAM 2 MODEl - precise detection trees based on Deep Forest boxes
 Usage:
     python 02_sam2.py --city verona
     python 02_sam2.py --city bolzano_rgb --test
-    python 02_sam2.py --city bolzano_rgb --n-tiles 10
 """
 
 import argparse
@@ -25,12 +24,14 @@ from shapely.geometry import shape, box as shapely_box
 import torch
 import os
 import sys
+
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 ROOT_PATH = "/workspace/3-30-300-index/"
 sys.path.insert(0, str(ROOT_PATH))
 os.chdir(ROOT_PATH)
+
 
 from config.config import (
     connect_db_with_retry, gdf_to_duckdb, CRS_METRIC, CRS_WGS,
@@ -89,8 +90,8 @@ MIN_IOU_WITH_BOX   = 0.05   # geometric sanity only: reject a candidate
                             # that barely overlaps the input box at all
                             # (SAM2 snapped to the wrong nearby object).
 MIN_CROWN_M2 = 1.0
-MAX_CROWN_M2 = 3000
-GREENNESS_MIN = 0.04
+GREENNESS_MIN = 0.10   # was 0.04 — bring in line with the loosest canopy-extraction
+MAX_CROWN_M2 = 400      
 
 sam2_model = build_sam2(SAM2_CFG, SAM2_CKPT, device=DEVICE)
 predictor = SAM2ImagePredictor(sam2_model)
