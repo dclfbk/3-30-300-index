@@ -1,4 +1,4 @@
-# 3-30-300 Urban Greenery Index — Italian Cities
+# 3-30-300 Urban Greenery Index - Italian Cities
 
 Evaluates compliance with the **3-30-300 rule** for urban greenery across Italian cities, at the civic-address level:
 
